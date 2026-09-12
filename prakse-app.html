@@ -1,0 +1,3506 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Memento</title>
+<link rel="icon" href="data:,">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #14131c;
+    --bg-soft: #1c1a26;
+    --paper: #f5f1ea;
+    --paper-dim: #ece5da;
+    --ink: #2a2620;
+    --ink-soft: #6b6459;
+    --line: rgba(255,255,255,0.09);
+    --line-paper: rgba(43,38,32,0.12);
+    --plum: #7d6b9e;
+    --plum-soft: #4a3f63;
+    --gold: #c9a24b;
+    --cream-text: #eceadf;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(ellipse at top, var(--bg-soft), var(--bg) 60%);
+    color: #e9e6dd;
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(80px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px));
+    display:flex;
+    justify-content:center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, .choice-btn, textarea, select, input{ touch-action: manipulation; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  .app{ width:100%; max-width: 640px; }
+
+  /* ---- Mobilni telefoni: veći dodirni ciljevi, naslagana dugmad, više vazduha ---- */
+  @media (max-width: 480px){
+    body{ padding-left: calc(14px + env(safe-area-inset-left, 0px)); padding-right: calc(14px + env(safe-area-inset-right, 0px)); padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
+    .card{ padding: 26px 20px; }
+    h1.qtitle{ font-size:22px; }
+    .prompt{ font-size:16px; }
+    textarea{ font-size:16px; min-height:130px; } /* 16px sprečava auto-zoom na iOS/Android */
+    button.nav, .choice-btn, .btn-loop-again, .btn-loop-done, .start-btn, .btn-small, .btn-outline{
+      min-height:48px; font-size:15.5px;
+    }
+    .actions{ flex-direction:column-reverse; align-items:stretch; }
+    .actions .btn-back{ width:100%; text-align:center; }
+    .btn-next{ width:100%; margin-left:0; }
+    .loop-actions{ flex-direction:column-reverse; align-items:stretch; }
+    .loop-actions .btn-back{ width:100%; text-align:center; }
+    .btn-loop-done{ width:100%; margin-left:0; }
+    .btn-loop-again{ width:100%; }
+    .voice-controls{ flex-direction:column; }
+    .voice-controls .btn-small{ width:100%; text-align:center; }
+    .space-hint{ display:none; } /* nema fizičke tastature na dodirnom ekranu */
+    .top-row{ margin-bottom:20px; }
+  }
+
+  .top-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom: 28px;
+  }
+  .brand{
+    font-family:'Fraunces', serif; font-weight:400; font-size:15px;
+    letter-spacing:0.04em; color:#c9c4b6; text-transform:uppercase;
+  }
+  .reset-btn{
+    background:none; border:none; color:#7a756a; font-size:12px;
+    cursor:pointer; text-decoration:underline; font-family:'Inter',sans-serif;
+  }
+  .reset-btn:hover{ color:#c9c4b6; }
+
+  .progress-wrap{ margin-bottom: 30px; }
+  .progress-track{
+    height:2px; background: var(--line); border-radius:2px; overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; background: var(--plum); transition: width 0.5s ease;
+  }
+  .progress-label{
+    font-size:11.5px; color:#8a8579; margin-top:8px; letter-spacing:0.03em;
+  }
+
+  .card{
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 3px;
+    padding: 40px 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    position: relative;
+  }
+  .card::before{
+    content:'';
+    position:absolute; left:0; top:0; bottom:0; width:3px;
+    background: var(--plum);
+  }
+
+  .eyebrow{
+    font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--plum-soft); margin-bottom:14px; font-weight:600;
+  }
+  h1.qtitle{
+    font-family:'Fraunces', serif; font-weight:500; font-size:26px;
+    line-height:1.25; margin:0 0 18px; color: var(--ink);
+  }
+  .prompt{
+    font-size:15px; line-height:1.65; color: var(--ink-soft);
+    margin-bottom: 26px; white-space: pre-line;
+  }
+
+  textarea{
+    width:100%; min-height:110px; resize:vertical;
+    font-family:'Inter',sans-serif; font-size:15px; line-height:1.6;
+    padding:14px 16px; border:1px solid var(--line-paper);
+    border-radius:2px; background: #fffdf9; color: var(--ink);
+    outline:none;
+  }
+  textarea:focus{ border-color: var(--plum); }
+  textarea::placeholder{ color:#a39c8d; }
+
+  .actions{
+    display:flex; justify-content:space-between; margin-top:32px; gap:12px; flex-wrap:wrap;
+  }
+  button.nav{
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:600;
+    padding:12px 22px; border-radius:2px; cursor:pointer; border:1px solid transparent;
+  }
+  .btn-back{
+    background:transparent; color: var(--ink-soft); border:1px solid var(--line-paper);
+  }
+  .btn-back:hover{ background: var(--paper-dim); }
+  .btn-next{
+    background: var(--plum-soft); color:#f4f1e8; margin-left:auto;
+  }
+  .btn-next:hover{ background:#3c3350; }
+  .btn-next:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .choice-list{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .choice-btn{
+    text-align:left; background:#fffdf9; border:1px solid var(--line-paper); color: var(--ink);
+    font-family:'Inter',sans-serif; font-size:14.5px; padding:14px 16px; border-radius:2px;
+    cursor:pointer; line-height:1.5;
+  }
+  .choice-btn:hover{ background: var(--paper-dim); border-color: var(--plum); }
+
+  .loop-actions{ display:flex; gap:10px; margin-top:32px; flex-wrap:wrap; }
+  .btn-loop-again{
+    background: var(--paper-dim); color: var(--ink); border:1px solid var(--line-paper);
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 20px;
+    border-radius:2px; cursor:pointer;
+  }
+  .btn-loop-again:hover{ background:#e2dacb; }
+  .btn-loop-done{
+    background: var(--plum-soft); color:#f4f1e8; border:none;
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 20px;
+    border-radius:2px; cursor:pointer; margin-left:auto;
+  }
+  .btn-loop-done:hover{ background:#3c3350; }
+
+  .entity-outcomes{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+
+  .intro-note{
+    font-size:14.5px; line-height:1.7; color: var(--ink-soft); margin-bottom:22px;
+  }
+  .safety{
+    font-size:13px; line-height:1.6; color:#7d7666;
+    border-top:1px solid var(--line-paper); padding-top:16px; margin-top:24px;
+  }
+  .start-btn{
+    background: var(--plum-soft); color:#f4f1e8; border:none;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:15px;
+    padding:14px 28px; border-radius:2px; cursor:pointer; margin-top:8px;
+  }
+  .start-btn:hover{ background:#3c3350; }
+
+  .voice-settings{
+    background: var(--paper-dim); border-radius:3px; padding:16px 18px;
+    margin-bottom:18px;
+  }
+  .toggle-row{
+    display:flex; align-items:flex-start; gap:10px; font-size:13.5px;
+    color: var(--ink); cursor:pointer; line-height:1.5;
+  }
+  .toggle-row input{ margin-top:3px; flex-shrink:0; }
+  .voice-status-note{
+    font-size:12.5px; color:#a17a52; margin-top:10px; line-height:1.5;
+  }
+  .voice-select-row{
+    margin-top:12px; display:flex; align-items:center; gap:10px; font-size:13px; flex-wrap:wrap;
+  }
+  .voice-select-row select{
+    font-family:'Inter',sans-serif; font-size:13px; padding:6px 8px;
+    border:1px solid var(--line-paper); border-radius:2px; background:#fffdf9;
+    color: var(--ink); max-width:280px;
+  }
+  .voice-select-row input[type="password"]{
+    font-family:'Inter',sans-serif; font-size:13px; padding:6px 8px;
+    border:1px solid var(--line-paper); border-radius:2px; background:#fffdf9;
+    color: var(--ink);
+  }
+  .openai-box{
+    margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-paper);
+  }
+
+  .topic-box{
+    background: var(--paper-dim); border-radius:3px; padding:16px 18px; margin-bottom:18px;
+  }
+  .topic-radio-row{
+    display:flex; align-items:flex-start; gap:8px; font-size:13.5px; color: var(--ink);
+    margin-bottom:8px; cursor:pointer; line-height:1.5;
+  }
+  .topic-radio-row input{ margin-top:3px; }
+  #topicQuestion{
+    width:100%; min-height:60px; margin-top:8px; font-family:'Inter',sans-serif; font-size:13.5px;
+    padding:10px 12px; border:1px solid var(--line-paper); border-radius:2px; background:#fffdf9; color: var(--ink);
+  }
+
+  .voice-status-bar{
+    display:flex; align-items:center; gap:10px; margin-bottom:18px;
+    font-size:13px; color:#8a8579; min-height:20px;
+  }
+  .status-dot{
+    width:9px; height:9px; border-radius:50%; background:#5a5647; flex-shrink:0;
+  }
+  .status-dot.speaking{ background: var(--gold); animation: pulse 1.1s ease-in-out infinite; }
+  .status-dot.listening{ background: var(--plum); animation: pulse 0.9s ease-in-out infinite; }
+  .status-dot.thinking{ background: #c9a24b; animation: pulse 0.7s ease-in-out infinite; }
+  @keyframes pulse{
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.5; transform:scale(1.3); }
+  }
+  .space-hint{
+    display:inline-block; font-size:11.5px; color:#9a9484; margin-left:auto;
+    border:1px solid var(--line); padding:2px 8px; border-radius:4px;
+  }
+  .voice-controls{
+    display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;
+  }
+  .btn-small{
+    background:transparent; border:1px solid var(--line-paper); color: var(--ink-soft);
+    font-family:'Inter',sans-serif; font-size:12.5px; padding:7px 14px;
+    border-radius:2px; cursor:pointer;
+  }
+  .btn-small:hover{ background: var(--paper-dim); }
+
+  .review-item{
+    border-bottom:1px solid var(--line-paper); padding:18px 0;
+  }
+  .review-item:last-child{ border-bottom:none; }
+  .review-phase{
+    font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#a39c8d; margin-bottom:4px;
+  }
+  .review-q{
+    font-family:'Fraunces',serif; font-size:16.5px; color: var(--ink); margin-bottom:6px;
+  }
+  .review-answer{
+    font-size:14px; line-height:1.6; color: var(--ink-soft); white-space: pre-wrap;
+  }
+  .review-answer.empty{ font-style:italic; color:#a39c8d; }
+
+  .outro-actions{ display:flex; gap:12px; margin-top:28px; flex-wrap:wrap; }
+  .btn-outline{
+    background:transparent; border:1px solid var(--plum-soft); color: var(--plum-soft);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+    padding:12px 20px; border-radius:2px; cursor:pointer;
+  }
+  .btn-outline:hover{ background: var(--paper-dim); }
+
+  .hidden{ display:none; }
+
+  ::selection{ background: var(--plum); color:#fff; }
+
+  /* ==================== FER dnevnik — naboj/orb ==================== */
+  @keyframes breathe{ 0%,100%{ transform:scale(0.94); opacity:0.85; } 50%{ transform:scale(1.06); opacity:1; } }
+  .scale-block{ margin-top: 26px; }
+  .scale-label{
+    font-size:13px; color: var(--ink-soft); margin-bottom:10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .scale-value{ font-family:'Fraunces',serif; font-size:20px; color: var(--ink); }
+  .orb-row{ display:flex; align-items:center; gap:18px; }
+  .orb-holder{ width:46px; height:46px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .orb{
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #e8c4ac, var(--gold) 70%);
+    transition: width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  .naboj-row{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .naboj-then{
+    font-size:12.5px; color:#a39c8d; background:var(--paper-dim);
+    padding:4px 10px; border-radius:20px;
+  }
+  .naboj-now-label{ font-size:12.5px; color: var(--ink-soft); }
+
+  /* ==================== Aurora pozadina (tema sajta) ==================== */
+  body{ position:relative; }
+  #auroraBg{
+    position:fixed; inset:0; z-index:-1; overflow:hidden; background:var(--bg);
+  }
+  #auroraBg .blob{ position:absolute; border-radius:50%; filter:blur(70px); opacity:0.5; }
+  #auroraBg .blob1{ width:560px; height:560px; background:var(--plum); top:-140px; left:-110px; animation:drift1 24s ease-in-out infinite; }
+  #auroraBg .blob2{ width:460px; height:460px; background:var(--gold); bottom:-160px; right:-90px; animation:drift2 28s ease-in-out infinite; }
+  #auroraBg .blob3{ width:380px; height:380px; background:var(--plum-soft); top:38%; left:58%; animation:drift3 32s ease-in-out infinite; }
+  @keyframes drift1{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(60px,80px) scale(1.15); } }
+  @keyframes drift2{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-70px,-40px) scale(1.1); } }
+  @keyframes drift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-40px,60px) scale(0.9); } }
+  .card{ background: rgba(245,241,234,0.94); backdrop-filter: blur(6px); }
+
+  /* ==================== Hub (po\u010detna) ==================== */
+  .app-picker{ display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+  .app-card{
+    text-align:left; background:#fffdf9; border:2px solid var(--line-paper); border-radius:8px;
+    padding:16px 18px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .app-card:hover{ border-color: var(--plum); }
+  .app-card.selected{ border-color: var(--plum); background: var(--paper-dim); }
+  .app-card .app-card-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:500; color: var(--ink); margin-bottom:3px; }
+  .app-card .app-card-desc{ font-size:13px; color: var(--ink-soft); line-height:1.5; }
+  .app-card-extra{ margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-paper); }
+</style>
+</head>
+<body>
+<div id="auroraBg">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+</div>
+<div class="app">
+
+  <div class="top-row">
+    <div class="brand">Prakse</div>
+    <button class="reset-btn" id="resetBtn">počni ponovo</button>
+  </div>
+
+  <!-- HUB -->
+  <div id="screen-hub">
+    <div class="card">
+      <div class="eyebrow">Pre nego počneš</div>
+      <h1 class="qtitle">Kratak, miran korak unazad.</h1>
+      <div class="intro-note">
+        Ovde biraš jednu od dve prakse i podešavaš glas — jednom, na početku. Ako uključiš
+        glasovni mod, koraci se čitaju naglas, a tvoj odgovor preko mikrofona se uživo ispisuje —
+        možeš sedeti sa zatvorenim očima. Za kraj koraka, pritisni dugme ili <strong>bilo koji
+        taster</strong>; taster <strong>Enter</strong> te vraća na prethodni korak i ponovo ga
+        čita naglas.
+      </div>
+
+      <div class="voice-select-row" style="margin-bottom:8px;">
+        <span><strong>Obraćanje (obavezno):</strong></span>
+        <label style="display:flex; align-items:center; gap:5px; font-size:13px;">
+          <input type="radio" name="genderChoice" value="z"> žensko
+        </label>
+        <label style="display:flex; align-items:center; gap:5px; font-size:13px;">
+          <input type="radio" name="genderChoice" value="m"> muško
+        </label>
+      </div>
+      <div id="genderWarning" class="voice-status-note hidden" style="color:#c1573f;">
+        Molim te izaberi rod pre nego počneš — bez toga ne mogu pravilno da ti se obraćam.
+      </div>
+
+      <div class="voice-settings" id="voiceSettings">
+        <label class="toggle-row">
+          <input type="checkbox" id="voiceToggle" checked>
+          <span>Glasovni mod — koraci se čitaju, odgovori se snimaju preko mikrofona</span>
+        </label>
+        <button type="button" class="btn-small" id="testVoiceBtn" style="margin-top:10px;">🔈 Testiraj glas</button>
+        <div id="testVoiceNote" class="voice-status-note hidden"></div>
+        <div id="voiceStatusNote" class="voice-status-note"></div>
+        <div id="voiceSelectRow" class="voice-select-row hidden">
+          <label for="voiceSelect">Glas:</label>
+          <select id="voiceSelect"></select>
+        </div>
+        <div class="voice-select-row">
+          <label for="recogLangSelect">Jezik prepoznavanja govora:</label>
+          <select id="recogLangSelect">
+            <option value="sr-RS">Srpski (sr-RS)</option>
+            <option value="hr-HR">Hrvatski (hr-HR)</option>
+            <option value="bs-BA">Bosanski (bs-BA)</option>
+            <option value="en-US">Engleski (en-US)</option>
+          </select>
+        </div>
+        <div class="voice-status-note">
+          Tačnost prepoznavanja govora zavisi od pregledača — probaj drugi jezik u listi ako
+          transkript ne odgovara onome što izgovaraš. Odgovor uvek možeš i rukom ispraviti u polju za unos.
+        </div>
+
+        <div class="openai-box">
+          <label class="toggle-row">
+            <input type="checkbox" id="openaiToggle">
+            <span>Napredni glas i preciznije prepoznavanje govora (OpenAI, opciono)</span>
+          </label>
+          <div id="openaiKeyRow" class="voice-select-row hidden">
+            <label for="openaiKeyInput">API ključ:</label>
+            <input type="password" id="openaiKeyInput" placeholder="sk-..." style="flex:1; min-width:160px;">
+          </div>
+          <div class="voice-status-note">
+            Ovo NIJE besplatno kao ostatak alata — koristi tvoj OpenAI API ključ i naplaćuje se po
+            upotrebi (nekoliko centi po sesiji, orijentaciono). Ključ se koristi samo u ovoj sesiji
+            u tvom pregledaču, ne čuva se trajno i ne šalje se nama.
+          </div>
+        </div>
+      </div>
+
+      <div class="safety">
+        Napomena: ovo su alati za samostalnu, ličnu praksu — nisu zamena za rad sa obučenim
+        terapeutom ili praktičarem. Radi u sigurnom, tihom prostoru. Ako u nekom trenutku osetiš
+        da te nešto previše preplavljuje, stani, otvori oči, udahni duboko nekoliko puta, i po
+        potrebi potraži podršku osobe kojoj veruješ ili stručnjaka. U svakom trenutku možeš kliknuti
+        „počni ponovo" i izaći iz sesije.
+      </div>
+
+      <div style="font-size:13.5px; font-weight:600; margin:22px 0 10px; color: var(--ink);">Izaberi praksu</div>
+      <div class="app-picker">
+
+        <div class="app-card" id="cardFer" data-app="fer">
+          <div class="app-card-title">FER dnevnik</div>
+          <div class="app-card-desc">Emocionalno rasterećenje — jedan konkretan problem, korak po korak, do rasterećenja i uvida.</div>
+          <div class="app-card-extra hidden" id="ferExtra">
+            <button class="start-btn" id="startFerBtn">Počni FER dnevnik</button>
+          </div>
+        </div>
+
+        <div class="app-card" id="cardMemento" data-app="memento">
+          <div class="app-card-title">Memento</div>
+          <div class="app-card-desc">Regresija u prošle živote — indukcija, istraživanje jednog ili više događaja, trenutak smrti, povratak i integracija.</div>
+          <div class="app-card-extra hidden" id="mementoExtra">
+            <div class="topic-box" style="background:transparent; padding:0;">
+              <div style="font-size:13px; font-weight:600; margin-bottom:8px; color: var(--ink);">Tema sesije</div>
+              <label class="topic-radio-row">
+                <input type="radio" name="topicChoice" value="none" checked id="topicNone">
+                <span>Bez unapred definisane teme — pustiću da se pojavi šta treba.</span>
+              </label>
+              <label class="topic-radio-row">
+                <input type="radio" name="topicChoice" value="defined" id="topicDefined">
+                <span>Imam pitanje ili nedoumicu za koju mi treba inspiracija.</span>
+              </label>
+              <textarea id="topicQuestion" class="hidden" placeholder="Zapiši ovde svoje pitanje ili nedoumicu…"></textarea>
+            </div>
+            <button class="start-btn" id="startMementoBtn" style="margin-top:14px;">Počni Memento</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP -->
+  <div id="screen-step" class="hidden">
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" id="qEyebrow"></div>
+      <h1 class="qtitle" id="qTitle"></h1>
+      <div class="prompt" id="qPrompt"></div>
+
+      <div class="voice-status-bar hidden" id="voiceStatusBar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">—</span>
+        <span class="space-hint" id="spaceHint">bilo koji taster → dalje · ENTER → nazad</span>
+      </div>
+
+      <textarea id="qAnswer" placeholder="Piši ovde, bez cenzure — prva stvar koja ti dođe je obično tačna…"></textarea>
+
+      <div class="voice-controls hidden" id="voiceControls">
+        <button class="btn-small" id="repeatBtn">🔈 Ponovi</button>
+        <button class="btn-small" id="toggleMicBtn">🎙️ Pauziraj mikrofon</button>
+      </div>
+
+      <!-- default text/confirm actions -->
+      <div class="actions" id="defaultActions">
+        <button class="nav btn-back" id="backBtn">Nazad</button>
+        <button class="nav btn-next" id="nextBtn">Zabeleži i nastavi</button>
+      </div>
+
+      <!-- loop actions (emotions/thoughts/detekcija) -->
+      <div class="loop-actions hidden" id="loopActions">
+        <button class="nav btn-back" id="backBtnLoop">Nazad</button>
+        <button class="btn-loop-again" id="loopAgainBtn">Zabeleži, ima još</button>
+        <button class="btn-loop-done" id="loopDoneBtn">Zabeleži, to je sve</button>
+      </div>
+
+      <!-- choice actions -->
+      <div class="hidden" id="choiceActions">
+        <div class="choice-list" id="choiceList"></div>
+        <div class="actions" style="margin-top:20px;">
+          <button class="nav btn-back" id="backBtnChoice">Nazad</button>
+        </div>
+      </div>
+
+      <!-- entity-loop actions -->
+      <div class="hidden" id="entityActions">
+        <div class="loop-actions" style="margin-top:0;">
+          <button class="nav btn-back" id="backBtnEntity">Nazad</button>
+          <button class="btn-loop-again" id="entityAgainBtn">Zabeleži i pitaj ponovo</button>
+        </div>
+        <div class="entity-outcomes">
+          <button class="choice-btn" id="entityOutcome1">To sam samo ja.</button>
+          <button class="choice-btn" id="entityOutcome2">Ostala je samo praznina.</button>
+          <button class="choice-btn" id="entityOutcome3">Otišao je entitet.</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW -->
+  <div id="screen-review" class="hidden">
+    <div class="card">
+      <div class="eyebrow">Pregled</div>
+      <h1 class="qtitle" id="reviewTitle">Ono što si prošao/prošla</h1>
+      <div class="intro-note" id="reviewIntroNote">
+        Ovde je, redom, ceo tok sesije — svaki korak i ono što si zabeležio/zabeležila.
+      </div>
+      <div id="reviewList"></div>
+      <div class="safety">
+        Ne mora sve da se razreši u jednoj sesiji. Ako nešto i dalje oseća neresio, u redu je —
+        možeš mu se vratiti kasnije, ili potražiti podršku osobe kojoj veruješ ili stručnjaka.
+      </div>
+      <div class="outro-actions">
+        <button class="btn-outline" id="downloadBtn">Preuzmi transkript (.txt)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW — FER dnevnik -->
+  <div id="screen-review-fer" class="hidden">
+    <div class="card">
+      <div class="eyebrow">Pregled</div>
+      <h1 class="qtitle" id="reviewTitleFer">Ono što si prošao/la</h1>
+      <div class="intro-note" id="reviewIntroNoteFer">
+        Ovdje su, redom, sva pitanja i tvoji odgovori. Za svako pročitaj šta si napisao/la
+        i podesi klizač na trenutnu jačinu naboja — vidjećeš razliku između "tada" i "sada".
+      </div>
+      <div id="reviewListFer"></div>
+      <div class="safety">
+        Ako je naboj i dalje visok na nekoj tački, u redu je — to samo znači da toj temi treba
+        još pažnje, možda uz podršku nekog kome vjeruješ. Ne mora sve da se riješi u jednoj sesiji.
+      </div>
+      <div class="outro-actions">
+        <button class="btn-outline" id="downloadBtnFer">Preuzmi transkript (.txt)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+// =========================================================================
+// STEP FACTORIES
+// =========================================================================
+let uidCounter = 0;
+function nextUid(base){ uidCounter++; return `${base}_${uidCounter}`; }
+
+function mkConfirm(uid, phase, title, prompt, extra){ return Object.assign({uid, phase, title, prompt, type:'confirm', answer:''}, extra||{}); }
+function mkText(uid, phase, title, prompt, extra){ return Object.assign({uid, phase, title, prompt, type:'text', answer:''}, extra||{}); }
+function mkLoop(uid, phase, title, prompt, extra){ return Object.assign({uid, phase, title, prompt, type:'text-loop', answer:''}, extra||{}); }
+function mkChoice(uid, phase, title, prompt, choices, extra){ return Object.assign({uid, phase, title, prompt, type:'choice', choices, answer:''}, extra||{}); }
+function mkEntity(uid, phase, title, prompt, askType, extra){ return Object.assign({uid, phase, title, prompt, type:'entity-loop', askType, answer:''}, extra||{}); }
+
+// =========================================================================
+// FLOW CONTENT
+// =========================================================================
+let eventCounter = 2;
+let sessionThematic = false;
+let sessionQuestion = '';
+
+function induction14Prompt(){
+  const topic = (sessionThematic && sessionQuestion) ? ' povezanog sa tvojom temom' : '';
+  return `Zamisli da se Zemlja kreće unazad, kao da vreme teče unazad… Neka se kreće brže i brže… a zatim sporije i sporije… Stvori osećaj da je došao trenutak tvog prošlog života${topic}. Neka Zemlja stane. Klikni kada osetiš da je stala.`;
+}
+
+function induction15Prompt(){
+  const topic = (sessionThematic && sessionQuestion)
+    ? `koji je povezan sa pitanjem ili temom koju si sebi zadao ili zadala na početku`
+    : `koji je sada za tebe najvažnije da posetiš`;
+  return `Počni da se spuštaš polako, sa namerom da uđeš u prošli život ${topic}. Klikni kada dodirneš podlogu.`;
+}
+
+function mkInd15b(){
+  const uid = nextUid('ind15b');
+  return mkChoice(uid, 'Indukcija', 'Da li nešto doživljavaš?',
+    'Dok stojiš na podlozi — da li nešto doživljavaš? Sliku, osećaj, mesto? Reci samo da ili ne.',
+    [
+      { label:'Da, nešto se pojavljuje', keywords:['da','jeste','pojavljuje','vidim','osecam','osjecam','nesto'], action: function(){} },
+      { label:'Ne, još ništa', keywords:['ne','nista','jos ne','jos nista'], action: function(){
+          flow.splice(current+1, 0, mkText(nextUid('ind15c'), 'Indukcija', 'Usmeri pažnju',
+            'Usmeri pažnju na svemir oko sebe. Da li ti nešto tamo privlači pažnju? Opiši ako da; ako ne, samo reci "ne" i nastavićemo dalje.', {optionalSkip:true}));
+        } }
+    ]);
+}
+
+function buildInduction(){
+  const phase = 'Indukcija';
+  return [
+    mkConfirm(nextUid('ind1'), phase, 'Zatvaranje očiju', 'Zatvori oči i opusti se. Klikni dugme kada to uradiš.'),
+    mkConfirm(nextUid('ind2'), phase, 'Istezanje kroz stopala', 'Zamisli i oseti da se istežeš kroz stopala, tako da postaneš oko deset centimetara {duži|duža} nego što jesi. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind3'), phase, 'Normalna dužina', 'Sada se vrati na svoju normalnu dužinu. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind4'), phase, 'Istezanje kroz glavu', 'Zamisli i oseti da se istežeš kroz glavu, tako da postaneš oko deset centimetara {viši|viša} nego što jesi. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind5'), phase, 'Normalna visina', 'Sada se vrati na svoju normalnu visinu. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind6'), phase, 'Širenje', 'Sada se, kao veliki balon koji se naduvava, proširi na sve strane dok ne ispuniš celu prostoriju. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind7'), phase, 'Normalna veličina', 'Sada se vrati na svoju normalnu veličinu. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind8'), phase, 'Pred vratima', 'Zamisli da se nalaziš ispred ulaznih vrata svoje kuće ili stana. Klikni kada to uradiš.'),
+    mkText(nextUid('ind9'), phase, 'Opis vrata', 'Opiši mi ta vrata — boja, materijal, ram, kvaka, otirač…'),
+    mkConfirm(nextUid('ind10'), phase, 'Na krovu', 'Zamisli da stojiš na krovu svoje kuće ili zgrade, bez obzira da li si ikada bio ili bila tamo. Klikni kada to uradiš.'),
+    mkText(nextUid('ind11'), phase, 'Pogled okolo', 'Pogledaj okolo. Šta vidiš? (zgrade, kuće, automobili, ljudi, da li se kreću ili ne…)'),
+    mkText(nextUid('ind12'), phase, 'Uspinjanje', 'Zamisli i oseti kako se uspinješ uvis, kao balon, na visinu od oko petsto metara. Šta vidiš?'),
+    mkConfirm(nextUid('ind13'), phase, 'Cela planeta', 'Nastavi da se uspinješ, do visine sa koje možeš da vidiš celu planetu Zemlju. Klikni kada to uradiš.'),
+    mkConfirm(nextUid('ind14'), phase, 'Vreme unazad', induction14Prompt()),
+    mkConfirm(nextUid('ind15'), phase, 'Spuštanje', induction15Prompt()),
+    mkInd15b()
+  ];
+}
+
+function mkContinueChoice(phase){
+  const uid = nextUid('cont');
+  return mkChoice(uid, phase, 'Sledeći korak',
+    'Da li želiš da odeš u još jedan događaj iz ovog života? Reci da ili ne — da znači još jedan događaj, ne znači da si {spreman|spremna} za trenutak smrti u ovom životu.',
+    [
+      { label:'Da — idem u sledeći događaj iz ovog života', keywords:['da','jeste','hocu','hoću','nastavljam','jos jedan','jos'], action: function(){
+          const n = eventCounter; eventCounter++;
+          flow.splice(current+1, 0, ...buildOtherEvent(n));
+        } },
+      { label:'Ne — {spreman|spremna} sam za trenutak smrti', keywords:['ne','nije','necu','neću','spreman','spremna','smrt','kraj'], action: function(){
+          flow.splice(current+1, 0, mkPreDetekcija());
+        } }
+    ]);
+}
+
+// Svako pitanje iz priručnika ide kao poseban korak — doživljava se jedno po
+// jedno, isto kao u skripti, a ne grupisano u jedan pasus.
+function buildFirstEvent(){
+  const phase = 'Eksploracija · Prvi događaj';
+  return [
+    mkText(nextUid('fe_stopala'), phase, 'Stopala', 'Pogledaj svoja stopala… Da li si {bos|bosa}, ili {obuven|obuvena}?'),
+    mkText(nextUid('fe_podloga'), phase, 'Podloga', 'Pogledaj podlogu na kojoj stojiš… Kakva je to podloga?'),
+    mkText(nextUid('fe_okolina'), phase, 'Okolina', 'Pogledaj oko sebe… Šta vidiš?'),
+    mkText(nextUid('fe_zvuci'), phase, 'Zvuci', 'Da li čuješ nešto?', {optionalSkip:true}),
+    mkText(nextUid('fe_odeca'), phase, 'Odeća', 'Pogledaj svoju odeću… Kakva je to odeća?'),
+    mkText(nextUid('fe_ruke'), phase, 'Ruke', 'Pogledaj svoje ruke… Kakve su to ruke?'),
+    mkText(nextUid('fe_lice'), phase, 'Lice', 'Da li vidiš svoje lice?', {optionalSkip:true}),
+    mkText(nextUid('fe_pol'), phase, 'Pol', 'Kojeg si pola u ovoj situaciji?'),
+    mkText(nextUid('fe_godine'), phase, 'Godine', 'Koliko imaš godina u ovoj situaciji?'),
+    mkText(nextUid('fe_lokacija'), phase, 'Lokacija', 'Gde se ovo dešava? Da li možeš da pretpostaviš lokaciju?', {optionalSkip:true}),
+    mkText(nextUid('fe_doba'), phase, 'Doba', 'Kada se ovo dešava? Da li možeš da pretpostaviš doba?', {optionalSkip:true}),
+
+    mkText(nextUid('fe_radnja'), phase, 'Šta radiš', 'Šta radiš u ovoj situaciji?'),
+    mkText(nextUid('fe_osecanje'), phase, 'Kako se osećaš', 'Kako se osećaš u ovoj situaciji?'),
+    mkText(nextUid('fe_misao'), phase, 'Misao', 'Da li imaš neku misao u ovoj situaciji?', {optionalSkip:true}),
+    mkText(nextUid('fe_vazno'), phase, 'Šta je važno', 'Šta je za tebe važno u ovoj situaciji?',
+      {deepenPrompt:'Probaj ponovo, malo konkretnije — šta ti je baš u ovom trenutku najvažnije?'}),
+    mkText(nextUid('fe_cilj'), phase, 'Cilj', 'Da li imaš neki cilj u ovoj situaciji?', {optionalSkip:true}),
+
+    mkText(nextUid('fe_drugi'), phase, 'Da li je još neko', 'Da li je još neko sa tobom u ovoj situaciji?', {optionalSkip:true, skipIf: isNegativeAnswer}),
+    mkText(nextUid('fe_ko_su'), phase, 'Šta su oni tebi', 'Šta su oni tebi?', {optionalSkip:true}),
+
+    mkText(nextUid('fe_dalje'), phase, 'Šta se dalje dešava', 'Šta se dalje dešava?'),
+    mkText(nextUid('fe_posle'), phase, 'Posle toga', 'Šta se desilo posle toga?'),
+    mkText(nextUid('fe_pre'), phase, 'Pre toga', 'Šta se desilo pre toga?'),
+
+    mkContinueChoice(phase)
+  ];
+}
+
+function buildOtherEvent(n){
+  const phase = `Eksploracija · Događaj ${n}`;
+  return [
+    mkText(nextUid('oe_jos'), phase, 'Ova situacija', 'Kaži mi (još) nešto o toj situaciji.'),
+    mkText(nextUid('oe_desava'), phase, 'Šta se dešava', 'Šta se dešava u toj situaciji?'),
+    mkText(nextUid('oe_unutra'), phase, 'Unutra ili napolju', 'Da li si unutra ili napolju?', {optionalSkip:true}),
+    mkText(nextUid('oe_godine'), phase, 'Godine', 'Koliko imaš godina u toj situaciji?'),
+    mkText(nextUid('oe_vazno'), phase, 'Šta je važno', 'Šta je važno za tebe u ovoj situaciji?'),
+    mkText(nextUid('oe_cilj'), phase, 'Cilj', 'Da li imaš neki cilj u ovoj situaciji?', {optionalSkip:true}),
+    mkText(nextUid('oe_paznja'), phase, 'Pažnja', 'Da li ti nešto privlači pažnju u ovoj situaciji?', {optionalSkip:true}),
+    mkText(nextUid('oe_jos_nesto'), phase, 'Još nešto', 'Da li postoji još nešto što želiš da saznaš o ovoj situaciji?', {optionalSkip:true}),
+
+    mkLoop(nextUid('oe_emocije'), phase, 'Emocije', 'Koju (još) emociju osećaš u ovoj situaciji? Za svaku reci i gde je osećaš u telu.'),
+    mkLoop(nextUid('oe_misli'), phase, 'Misli', 'Da li imaš (još) neku misao u ovoj situaciji?'),
+    mkText(nextUid('oe_detalji'), phase, 'Dodatni detalji', 'Ima li još nešto u vezi toga?', {optionalSkip:true}),
+
+    mkText(nextUid('oe_osobe'), phase, 'Osobe',
+      'Ako se u ovoj situaciji pojavljuje neka važna osoba, uveličaj joj lice da pokrije ceo tvoj mentalni ekran i pogledaj je u oči — da li je prepoznaješ kao nekoga iz tvog sadašnjeg života? Opiši; ako nema važne osobe, napiši "nema".', {optionalSkip:true}),
+
+    mkText(nextUid('oe_dalje'), phase, 'Šta se dalje dešava', 'Šta se dalje dešava?'),
+    mkText(nextUid('oe_posle'), phase, 'Posle toga', 'Šta se desilo posle toga?'),
+    mkText(nextUid('oe_pre'), phase, 'Pre toga', 'Šta se desilo pre toga?'),
+
+    mkContinueChoice(phase)
+  ];
+}
+
+function mkPreDetekcija(){
+  const uid = nextUid('pre');
+  return mkChoice(uid, 'Pre detekcije', 'Pre nego što nastavimo',
+    'Da li smo propustili bilo šta važno iz ovog života? Reci da ili ne.',
+    [
+      { label:'Da, ima još nešto važno', keywords:['da','jeste','ima','propustili'], action: function(){
+          const n = eventCounter; eventCounter++;
+          flow.splice(current+1, 0, ...buildOtherEvent(n));
+        } },
+      { label:'Ne, {spreman|spremna} sam da nastavim', keywords:['ne','nije','nema','spreman','spremna'], action: function(){
+          flow.splice(current+1, 0, ...buildDetekcija());
+        } }
+    ]);
+}
+
+function buildDetekcija(){
+  const phase = 'Detekcija · trenutak smrti';
+  return [
+    mkText(nextUid('det1'), phase, 'Trenutak smrti',
+      'Idi u situaciju kada si {umro|umrla} u ovom životu. Gledaj svoje telo iz tačke izvan tela. Kaži mi nešto o toj situaciji.'),
+    mkText(nextUid('det2'), phase, 'Neposredno posle',
+      'Idi u trenutak neposredno posle smrti. Šta se dešava?', {optionalSkip:true}),
+    mkLoop(nextUid('det3'), phase, 'Zaključak', 'Dok gledaš svoje telo — da li donosiš neki zaključak?'),
+    mkLoop(nextUid('det4'), phase, 'Odluka', 'Dok gledaš svoje telo — da li donosiš neku odluku?'),
+    mkLoop(nextUid('det5'), phase, 'Cilj', 'Dok gledaš svoje telo — da li imaš neki cilj?'),
+    mkText(nextUid('rez1'), 'Rezolucija', 'Šta se dalje dešava',
+      'Šta se dalje dešava — ne sa telom, već sa tobom? Šta se dešava nakon toga?'),
+    mkRez2()
+  ];
+}
+
+function mkRez2(){
+  const uid = nextUid('rez2');
+  return mkChoice(uid, 'Rezolucija', 'Svetlo',
+    'Da li si {otišao|otišla} u Svetlo, u Prazninu, u Ništavilo? Reci da ili ne.',
+    [
+      { label:'Da, {otišao|otišla} sam u Svetlo', keywords:['da','jeste','svetlo','svjetlo','praznina','nistavilo'], action: function(){
+          flow.splice(current+1, 0, ...buildStabilizacija());
+        } },
+      { label:'Ne, nešto ili neko me drži vezanim za taj život', keywords:['ne','nije','drzi','drži','vezan','vezana'], action: function(){
+          flow.splice(current+1, 0, mkRez3());
+        } }
+    ]);
+}
+
+function mkRez3(){
+  const uid = nextUid('rez3');
+  return mkChoice(uid, 'Rezolucija', 'Šta te drži',
+    'Da li te drži naboj ili osoba? Reci da ako je naboj ili osoba, ili ne ako je u pitanju entitet.',
+    [
+      { label:'Da — naboj ili osoba', keywords:['da','jeste','naboj','osoba','covek','čovek','osobe'], action: function(){
+          flow.splice(current+1, 0,
+            mkText(nextUid('rezclear'), 'Rezolucija', 'Čišćenje naboja',
+              'Vrati se u tu situaciju i pusti da se naboj čisti. Šta primećuješ dok se to dešava?'),
+            mkRez2());
+        } },
+      { label:'Ne — entitet', keywords:['ne','nije','entitet'], action: function(){
+          flow.splice(current+1, 0, mkEntityStep('ko'));
+        } }
+    ]);
+}
+
+function mkEntityStep(askType){
+  const uid = nextUid('entity');
+  const prompt = askType === 'ko' ? 'Ko si ti?' : 'Šta si ti?';
+  return mkEntity(uid, 'Rezolucija', 'Entitet', prompt, askType);
+}
+
+function buildStabilizacija(){
+  const phase = 'Stabilizacija';
+  const steps = [
+    mkLoop(nextUid('stab1'), phase, 'Veza sa sadašnjim životom',
+      'Da li ovaj prošli život objašnjava nešto vezano za tvoj sadašnji život, odnose ili ponašanje?')
+  ];
+  if(sessionThematic && sessionQuestion){
+    steps.push(mkText(nextUid('stab2'), phase, 'Tvoje pitanje',
+      `Pročitaj pitanje koje si {zapisao|zapisala} na početku: "${sessionQuestion}". Da li imaš odgovor?`));
+  }
+  const last = mkText(nextUid('stab3'), phase, 'Prvi korak', 'Koji je tvoj prvi korak posle ovoga?');
+  last.isFinal = true;
+  steps.push(last);
+  return steps;
+}
+
+function buildInitialFlow(){
+  eventCounter = 2;
+  uidCounter = 0;
+  return [...buildInduction(), ...buildFirstEvent()];
+}
+
+// =========================================================================
+// STATE
+// =========================================================================
+let flow = [];
+let current = -1;
+let userGender = 'z';
+let voiceModeEnabled = false;
+let nudgeAttempts = {};
+let bypassVagueCheck = false;
+
+function genderize(text){
+  return (text || '').replace(/\{([^|}]*)\|([^}]*)\}/g, (match, m, f) => (userGender === 'm' ? m : f));
+}
+
+function normalizeSr(text){
+  return (text || '')
+    .toLowerCase()
+    .replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'dj')
+    .replace(/[.,!?„"]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Da li odgovor u suštini znači "ne/niko/nema nikog" — koristi se da se
+// preskoči zavisno pitanje koje nema smisla ako je odgovor negativan
+// (npr. "Šta su oni tebi?" posle "nema nikog ovde").
+function isNegativeAnswer(text){
+  const norm = ' ' + normalizeSr(text) + ' ';
+  const negPhrases = ['ne', 'niko', 'nema nikog', 'nema nikoga', 'nema ih', 'sam sam', 'sama sam', 'nijedan', 'ni jedan'];
+  return negPhrases.some(p => norm.includes(' ' + normalizeSr(p) + ' '));
+}
+
+// Traži koja od ponuđenih opcija (svaka sa listom ključnih reči) odgovara
+// izgovorenom tekstu. Vraća indeks opcije, ili -1 ako je nejasno/dvosmisleno.
+function matchChoiceIndex(text, choices){
+  const norm = ' ' + normalizeSr(text) + ' ';
+  if(norm.trim().length === 0) return -1;
+  const hits = [];
+  choices.forEach((choice, idx) => {
+    const kws = choice.keywords || [];
+    const found = kws.some(kw => norm.includes(' ' + normalizeSr(kw) + ' '));
+    if(found) hits.push(idx);
+  });
+  if(hits.length === 1) return hits[0];
+  // Generička da/ne rezerva: sve dvočlane raskrsnice u ovoj app su dosledno
+  // poređane [Da, Ne], pa i kad specifične ključne reči ne pokriju baš ono
+  // što je izgovoreno, gola reč "da" ili "ne" i dalje pouzdano razrešava.
+  if(choices.length === 2){
+    const hasDa = / da /.test(norm) || / jeste /.test(norm);
+    const hasNe = / ne /.test(norm) || / nije /.test(norm);
+    if(hasDa && !hasNe) return 0;
+    if(hasNe && !hasDa) return 1;
+  }
+  return -1;
+}
+
+const ENTITY_OUTCOME_KEYWORDS = [
+  { label:'To sam samo ja.', kws:['to sam ja','samo ja','ja sam to','to sam samo ja'] },
+  { label:'Ostala je samo praznina.', kws:['praznina','samo praznina','nista','ostala je praznina'] },
+  { label:'Otišao je entitet.', kws:['otisao','otisla','nestao','nestala','otisao je','nema ga vise','nema ga više'] }
+];
+function matchEntityOutcome(text){
+  const norm = ' ' + normalizeSr(text) + ' ';
+  if(norm.trim().length === 0) return null;
+  const hits = ENTITY_OUTCOME_KEYWORDS.filter(o => o.kws.some(kw => norm.includes(' ' + normalizeSr(kw) + ' ')));
+  return hits.length === 1 ? hits[0].label : null;
+}
+
+// =========================================================================
+// DOM
+// =========================================================================
+const screenHub = document.getElementById('screen-hub');
+const screenStep = document.getElementById('screen-step');
+const screenReview = document.getElementById('screen-review');
+
+const qEyebrow = document.getElementById('qEyebrow');
+const qTitle = document.getElementById('qTitle');
+const qPrompt = document.getElementById('qPrompt');
+const qAnswer = document.getElementById('qAnswer');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+
+const defaultActions = document.getElementById('defaultActions');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+const loopActions = document.getElementById('loopActions');
+const backBtnLoop = document.getElementById('backBtnLoop');
+const loopAgainBtn = document.getElementById('loopAgainBtn');
+const loopDoneBtn = document.getElementById('loopDoneBtn');
+
+const choiceActions = document.getElementById('choiceActions');
+const choiceList = document.getElementById('choiceList');
+const backBtnChoice = document.getElementById('backBtnChoice');
+
+const entityActions = document.getElementById('entityActions');
+const backBtnEntity = document.getElementById('backBtnEntity');
+const entityAgainBtn = document.getElementById('entityAgainBtn');
+const entityOutcome1 = document.getElementById('entityOutcome1');
+const entityOutcome2 = document.getElementById('entityOutcome2');
+const entityOutcome3 = document.getElementById('entityOutcome3');
+
+const voiceToggle = document.getElementById('voiceToggle');
+const voiceStatusNote = document.getElementById('voiceStatusNote');
+const voiceSelectRow = document.getElementById('voiceSelectRow');
+const voiceSelect = document.getElementById('voiceSelect');
+const voiceStatusBar = document.getElementById('voiceStatusBar');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const voiceControls = document.getElementById('voiceControls');
+const repeatBtn = document.getElementById('repeatBtn');
+const spaceHint = document.getElementById('spaceHint');
+const toggleMicBtn = document.getElementById('toggleMicBtn');
+
+const topicDefined = document.getElementById('topicDefined');
+const topicNone = document.getElementById('topicNone');
+const topicQuestion = document.getElementById('topicQuestion');
+topicDefined.addEventListener('change', () => topicQuestion.classList.toggle('hidden', !topicDefined.checked));
+topicNone.addEventListener('change', () => topicQuestion.classList.toggle('hidden', !topicDefined.checked));
+
+const synth = window.speechSynthesis;
+const speechSupported = 'speechSynthesis' in window;
+const RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognitionSupported = !!RecognitionCtor;
+
+let selectedVoice = null;
+let userPickedVoiceName = null; // ostaje isto tokom cele sesije čim korisnik jednom izabere
+let recognition = null;
+let micPaused = false;
+let sessionActive = false;
+let captureMode = null; // null | 'answer'
+let segmentFinal = '';
+let stage = 'idle'; // idle | speaking | answer
+let recognitionLang = 'sr-RS';
+let whisperLanguage = 'sr';
+
+function setStatus(kind, text){
+  statusDot.className = 'status-dot' + (kind ? ' '+kind : '');
+  statusText.textContent = text;
+}
+
+// ---------- voice setup ----------
+// Podrazumevani glas, ako ništa drugo nije sačuvano/izabrano: Gabrijela
+// (hrvatski, prirodan/kvalitetan glas dostupan npr. u Edge-u).
+const DEFAULT_VOICE_NAME_HINTS = ['gabrijela', 'gabriela'];
+function pickBestVoice(voices){
+  const byDefaultHint = voices.find(v => DEFAULT_VOICE_NAME_HINTS.some(h => v.name.toLowerCase().includes(h)));
+  if(byDefaultHint) return byDefaultHint;
+  const slavic = voices.filter(v => /^(sr|hr|bs)/i.test(v.lang));
+  let pool = slavic.length ? slavic : voices.filter(v => /^en/i.test(v.lang));
+  if(!pool.length) pool = voices;
+  const femaleGuess = pool.find(v => /female|žena|zena|samantha|zira|ivana|maja|ana|victoria|susan|karen|google.*female/i.test(v.name));
+  return femaleGuess || pool[0] || null;
+}
+function loadVoices(){
+  if(!speechSupported) return;
+  const voices = synth.getVoices();
+  if(!voices.length) return;
+  voiceSelect.innerHTML = '';
+  const slavic = voices.filter(v => /^(sr|hr|bs)/i.test(v.lang));
+  const primary = slavic.length ? slavic : voices;
+  primary.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.name; opt.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+  if(slavic.length){
+    voices.filter(v => /^en/i.test(v.lang)).slice(0,4).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name; opt.textContent = `${v.name} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+  }
+  // Ako je korisnik već nešto izabrao (ili je učitano iz prethodne sesije),
+  // uvek to poštuj — nikad ne prepisuj preko toga, čak ni kad pregledač
+  // ponovo pozove ovu funkciju usred sesije (Edge to zna da uradi).
+  if(userPickedVoiceName){
+    const stillThere = voices.find(v => v.name === userPickedVoiceName);
+    if(stillThere){
+      selectedVoice = stillThere;
+      voiceSelect.value = stillThere.name;
+      voiceSelectRow.classList.remove('hidden');
+      return;
+    }
+  }
+  if(!selectedVoice){
+    selectedVoice = pickBestVoice(voices);
+    if(selectedVoice) userPickedVoiceName = selectedVoice.name;
+  }
+  if(selectedVoice) voiceSelect.value = selectedVoice.name;
+  voiceSelectRow.classList.remove('hidden');
+}
+if(speechSupported){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+voiceSelect.addEventListener('change', () => {
+  const voices = synth.getVoices();
+  selectedVoice = voices.find(v => v.name === voiceSelect.value) || selectedVoice;
+  userPickedVoiceName = selectedVoice ? selectedVoice.name : null;
+});
+
+if(!speechSupported || !recognitionSupported){
+  voiceToggle.checked = false;
+  voiceToggle.disabled = true;
+  voiceStatusNote.textContent = 'Tvoj pregledač ne podržava glasovni unos u potpunosti (radi najbolje u Chrome-u na računaru). Nastavićemo u ručnom modu — kucanje i klik.';
+} else {
+  voiceStatusNote.textContent = 'Pregledač će jednom, na početku, pitati za dozvolu za mikrofon — dozvoli pristup. To se pita samo taj jedan put.';
+}
+
+const recogLangSelect = document.getElementById('recogLangSelect');
+recogLangSelect.addEventListener('change', () => {
+  recognitionLang = recogLangSelect.value;
+  whisperLanguage = recogLangSelect.value.slice(0,2);
+});
+
+const openaiToggle = document.getElementById('openaiToggle');
+const openaiKeyRow = document.getElementById('openaiKeyRow');
+const openaiKeyInput = document.getElementById('openaiKeyInput');
+openaiToggle.addEventListener('change', () => openaiKeyRow.classList.toggle('hidden', !openaiToggle.checked));
+
+let openaiEnabled = false;
+let openaiApiKey = '';
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingStartTime = 0;
+let audioActivityInterval = null;
+
+async function initMediaStreamOnce(){
+  if(mediaStream) return mediaStream;
+  mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  setupAudioActivityMonitor(mediaStream);
+  return mediaStream;
+}
+
+function setupAudioActivityMonitor(stream){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    if(audioActivityInterval) clearInterval(audioActivityInterval);
+    audioActivityInterval = setInterval(() => {
+      analyser.getByteTimeDomainData(data);
+      let sumSquares = 0;
+      for(let i = 0; i < data.length; i++){ const v = (data[i] - 128) / 128; sumSquares += v * v; }
+      const rms = Math.sqrt(sumSquares / data.length);
+      if(rms > 0.02 && captureMode === 'answer') resetSilenceTimer();
+    }, 400);
+  }catch(e){ console.error('audio activity monitor error', e); }
+}
+
+async function startRecordingSegment(){
+  if(!mediaStream) return;
+  if(mediaRecorder && mediaRecorder.state === 'recording'){ try{ mediaRecorder.stop(); }catch(e){} }
+  recordedChunks = [];
+  recordingStartTime = Date.now();
+  try{
+    mediaRecorder = new MediaRecorder(mediaStream);
+    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.start();
+  }catch(e){
+    console.error('MediaRecorder nije uspeo da krene, pokušavam da osvežim mikrofon…', e);
+    try{
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setupAudioActivityMonitor(mediaStream);
+      recordedChunks = []; recordingStartTime = Date.now();
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size > 0) recordedChunks.push(ev.data); };
+      mediaRecorder.start();
+    }catch(e2){
+      console.error('Mikrofon i dalje ne radi ni nakon osvežavanja', e2);
+      setStatus('', 'Problem sa mikrofonom — probaj da osvežiš stranicu (F5).');
+    }
+  }
+}
+
+function stopRecordingSegment(){
+  return new Promise((resolve) => {
+    if(!mediaRecorder || mediaRecorder.state === 'inactive'){ resolve(null); return; }
+    const durationMs = Date.now() - recordingStartTime;
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      console.log(`Snimljeno: ${(durationMs/1000).toFixed(1)}s, ${blob.size} bajtova`);
+      resolve(blob);
+    };
+    mediaRecorder.stop();
+  });
+}
+
+const CYRILLIC_TO_LATIN_MAP = {
+  'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Ђ':'Đ','Е':'E','Ж':'Ž','З':'Z','И':'I','Ј':'J',
+  'К':'K','Л':'L','Љ':'Lj','М':'M','Н':'N','Њ':'Nj','О':'O','П':'P','Р':'R','С':'S','Т':'T',
+  'Ћ':'Ć','У':'U','Ф':'F','Х':'H','Ц':'C','Ч':'Č','Џ':'Dž','Ш':'Š',
+  'а':'a','б':'b','в':'v','г':'g','д':'d','ђ':'đ','е':'e','ж':'ž','з':'z','и':'i','ј':'j',
+  'к':'k','л':'l','љ':'lj','м':'m','н':'n','њ':'nj','о':'o','п':'p','р':'r','с':'s','т':'t',
+  'ћ':'ć','у':'u','ф':'f','х':'h','ц':'c','ч':'č','џ':'dž','ш':'š'
+};
+function cyrillicToLatin(text){
+  if(!text) return text;
+  let out = '';
+  for(const ch of text){ out += (CYRILLIC_TO_LATIN_MAP[ch] !== undefined ? CYRILLIC_TO_LATIN_MAP[ch] : ch); }
+  return out;
+}
+
+async function transcribeWithWhisper(blob){
+  if(!blob || blob.size < 1000) return null;
+  const PRIMING_PROMPT = 'Da, ima još jedna misao o ovome.';
+  try{
+    const form = new FormData();
+    form.append('file', blob, 'audio.webm');
+    form.append('model', 'gpt-4o-transcribe');
+    form.append('language', whisperLanguage);
+    form.append('temperature', '0');
+    form.append('prompt', PRIMING_PROMPT);
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${openaiApiKey}` },
+      body: form
+    });
+    if(!res.ok) throw new Error('Whisper API greška: ' + res.status);
+    const data = await res.json();
+    const text = cyrillicToLatin((data.text || '').trim());
+    const normalize = (s) => s.toLowerCase().replace(/[.,!?„"]/g, '').trim();
+    if(normalize(text) === normalize(PRIMING_PROMPT)) return null;
+    return text;
+  }catch(e){
+    console.error('Whisper transcription error', e);
+    setStatus('', 'Whisper nije dostupan — prebacujem na ugrađeno prepoznavanje.');
+    return null;
+  }
+}
+
+// ---------- AI agent (Claude, besplatno, ugrađeno) ----------
+async function callAgent(system, user){
+  if(openaiApiKey){
+    try{
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+          max_tokens: 300
+        })
+      });
+      if(!response.ok) throw new Error('OpenAI agent greška: ' + response.status);
+      const data = await response.json();
+      const text = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+      return text ? text.trim() : null;
+    }catch(e){ console.error('OpenAI agent error', e); }
+  }
+  try{
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 300, system: system, messages: [{ role: 'user', content: user }] })
+    });
+    const data = await response.json();
+    const text = (data.content || []).map(b => b.text || '').join('').trim();
+    return text || null;
+  }catch(e){
+    console.error('Claude agent error', e);
+    return null;
+  }
+}
+
+const KNOWN_EMPTY_PHRASES = [
+  'ne znam', 'nemam pojma', 'ništa', 'nista', 'ne mogu da smislim', 'nema ništa', 'nema nista',
+  'ne znam šta', 'ne znam sta', 'nemam ideju', 'prazno', 'ne mogu', 'nemam odgovor',
+  'ne mogu da kazem', 'ne mogu da kažem', 'ništa mi ne pada na pamet', 'nista mi ne pada na pamet',
+  'nemam', 'ne', 'ništa posebno', 'nista posebno'
+];
+function looksLikeEmptyPhrase(answer){
+  const cleaned = (answer || '').toLowerCase().replace(/[.,!?„"]/g, '').trim();
+  if(!cleaned) return true;
+  for(const phrase of KNOWN_EMPTY_PHRASES){
+    if(cleaned === phrase) return true;
+    if(cleaned.startsWith(phrase) && cleaned.length <= phrase.length + 12) return true;
+  }
+  return false;
+}
+async function agentIsVague(title, answer){
+  // Namerno blago: nudge se javlja samo za zaista prazne/izbegavajuće odgovore
+  // (npr. "ne znam", "ništa"), nikad samo zato što je odgovor kratak — kratki
+  // odgovori ("tuga", "nema nikog") su u ovoj praksi potpuno legitimni.
+  if(!answer || answer.trim().length === 0) return true;
+  return looksLikeEmptyPhrase(answer);
+}
+async function agentCleanupTranscript(text){
+  if(!text || !text.trim()) return text;
+  const system = "Dobićeš tekst dobijen automatskim prepoznavanjem govora (ASR), koji ponekad sadrži "
+    + "očigledne greške — pogrešno prepoznatu reč koja nema smisla u kontekstu. Tvoj zadatak je SAMO "
+    + "da ispraviš takve očigledne greške prepoznavanja govora i osnovnu gramatiku, po logici konteksta. "
+    + "NE menjaj značenje, NE dodaji nove misli, NE skraćuj niti proširuj sadržaj. Ako je tekst već "
+    + "razumljiv, vrati ga nepromenjenog. Vrati isključivo ispravljeni tekst, bez objašnjenja.";
+  const resp = await callAgent(system, text);
+  return resp || text;
+}
+
+// ---------- storage ----------
+const hasStorage = (typeof window !== 'undefined') && (typeof window.storage !== 'undefined');
+if(!hasStorage){
+  console.log('Napomena: window.storage nije dostupan (fajl je verovatno otvoren lokalno, van Claude.ai) — pamćenje sesija je isključeno, sve ostalo radi normalno.');
+}
+async function saveSessionToStorage(){
+  if(!hasStorage) return;
+  try{
+    const timestamp = new Date().toISOString();
+    const payload = { timestamp, steps: flow.map(s => ({ phase:s.phase, title:s.title, answer:s.answer, type:s.type })) };
+    await window.storage.set(`session:${timestamp}`, JSON.stringify(payload), false);
+  }catch(e){ console.error('storage save error', e); }
+}
+async function saveProfile(){
+  if(!hasStorage) return;
+  try{ await window.storage.set('profile', JSON.stringify({ gender: userGender, voiceName: userPickedVoiceName, name: userName }), false); }catch(e){}
+}
+async function loadSavedProfile(){
+  if(!hasStorage) return;
+  try{
+    const result = await window.storage.get('profile', false);
+    if(result && result.value){
+      const parsed = JSON.parse(result.value);
+      if(parsed.gender) userGender = parsed.gender;
+      if(parsed.name && !userName) userName = parsed.name;
+      if(parsed.voiceName){
+        userPickedVoiceName = parsed.voiceName;
+        if(speechSupported) loadVoices(); // primeni sačuvani glas čim je lista glasova spremna
+      }
+    }
+  }catch(e){}
+}
+
+// ---------- TTS ----------
+let currentAudioEl = null;
+async function speakOpenAI(text){
+  try{
+    const res = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'tts-1', voice: 'nova', input: text })
+    });
+    if(!res.ok) throw new Error('TTS API greška: ' + res.status);
+    const audioBlob = await res.blob();
+    const url = URL.createObjectURL(audioBlob);
+    return await new Promise((resolve) => {
+      const audio = new Audio(url);
+      currentAudioEl = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); currentAudioEl = null; resolve(true); };
+      audio.onerror = () => { URL.revokeObjectURL(url); currentAudioEl = null; resolve(true); };
+      setStatus('speaking', 'Čita…');
+      audio.play();
+    });
+  }catch(e){ console.error('OpenAI TTS error', e); return false; }
+}
+let resumeWatchdog = null;
+function clearResumeWatchdog(){ if(resumeWatchdog){ clearInterval(resumeWatchdog); resumeWatchdog = null; } }
+
+async function speak(text, onEndCallback){
+  if(openaiEnabled){
+    const ok = await speakOpenAI(text);
+    if(ok){ onEndCallback && onEndCallback(); return; }
+  }
+  if(!speechSupported){ onEndCallback && onEndCallback(); return; }
+
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(text);
+    // NAMERNO ne zovemo ovde synth.getVoices() ponovo — taj poziv pred svaki
+    // izgovor je upravo ono što je pokvarilo Edge (posle prvog izgovora red
+    // za čitanje prestane da radi). selectedVoice se već ažurno održava u
+    // loadVoices()/onvoiceschanged, pa ga ovde samo koristimo direktno.
+    if(selectedVoice) utter.voice = selectedVoice;
+    utter.rate = 0.95; utter.pitch = 1.0;
+    utter.onstart = () => {
+      // Chrome/Edge poznato ume da sam od sebe "pauzira" sintezu posle ~15s
+      // i nikad je ne nastavi — ovo je čuvar koji je redovno "budi".
+      clearResumeWatchdog();
+      resumeWatchdog = setInterval(() => { if(synth.speaking) synth.resume(); }, 4000);
+    };
+    utter.onend = () => { clearResumeWatchdog(); onEndCallback && onEndCallback(); };
+    utter.onerror = () => { clearResumeWatchdog(); onEndCallback && onEndCallback(); };
+    setStatus('speaking', 'Čita…');
+    synth.speak(utter);
+  };
+
+  // Poznata Chrome/Edge greška: ako se speak() pozove odmah posle cancel()
+  // u istom trenutku, novi izgovor ume tiho da propadne bez ikakve greške —
+  // to tačno objašnjava "pročita samo prvo pitanje, posle tišina". Zato
+  // brišemo samo kad nešto zaista govori/čeka, i damo pregledaču kratak
+  // trenutak da resetuje red pre novog izgovora.
+  if(synth.speaking || synth.pending){
+    synth.cancel();
+    setTimeout(doSpeak, 80);
+  } else {
+    doSpeak();
+  }
+}
+function speakAwait(text){ return new Promise((resolve) => { stage='speaking'; captureMode=null; speak(text, resolve); }); }
+
+// ---------- mic unavailable fallback ----------
+function handleMicUnavailable(){
+  voiceModeEnabled = false;
+  sessionActive = false;
+  captureMode = null;
+  if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} recognition = null; }
+  voiceStatusBar.classList.add('hidden');
+  voiceControls.classList.add('hidden');
+  if(!document.getElementById('micFallbackNote')){
+    const note = document.createElement('div');
+    note.id = 'micFallbackNote';
+    note.className = 'voice-status-note';
+    note.style.marginBottom = '18px';
+    note.textContent = 'Mikrofon nije dostupan. Prešli smo na ručni unos — kucaj odgovore, dugmad i dalje rade.';
+    qPrompt.insertAdjacentElement('afterend', note);
+  }
+}
+
+// ---------- recognition ----------
+function initRecognitionOnce(){
+  if(recognition) return recognition;
+  recognition = new RecognitionCtor();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+  recognition.lang = recognitionLang;
+
+  recognition.onresult = (event) => {
+    if(captureMode !== 'answer' || current < 0) return;
+    resetSilenceTimer();
+    let interim = '';
+    let gotFinal = false;
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const result = event.results[i];
+      const t = result[0].transcript;
+      if(result.isFinal){ segmentFinal = (segmentFinal + ' ' + cyrillicToLatin(t.trim())).trim(); gotFinal = true; }
+      else { interim += t; }
+    }
+    qAnswer.value = (segmentFinal + ' ' + interim).trim();
+    if(!openaiEnabled) flow[current].answer = qAnswer.value;
+
+    // Za da/ne pitanja (i za entitet) ne treba da se čeka klik — čim prepoznamo
+    // jasan odgovor, nastavljamo automatski, tako da oči mogu ostati zatvorene.
+    // Kratke reči poput "da"/"ne" često nikad ne dobiju status "isFinal" u
+    // pregledaču, pa pored trenutne provere koristimo i kratak debounce na
+    // ono što je do sad prepoznato (uključujući nedovršeno/interim).
+    if(!openaiEnabled && current >= 0){
+      const step = flow[current];
+      if(step && (step.type === 'choice' || step.type === 'entity-loop')){
+        if(gotFinal){
+          const matched = tryMatchStepAnswer(step, segmentFinal);
+          if(matched) return;
+        }
+        scheduleChoiceInterimCheck();
+      }
+    }
+  };
+  recognition.onerror = (e) => {
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed') handleMicUnavailable();
+    else if(e.error === 'language-not-supported' && recognitionLang !== 'en-US'){
+      recognitionLang = 'en-US'; if(recogLangSelect) recogLangSelect.value = 'en-US';
+    }
+  };
+  recognition.onend = () => {
+    if(sessionActive && voiceModeEnabled && !micPaused){ try{ recognition.start(); }catch(e){} }
+  };
+  return recognition;
+}
+
+function tryMatchStepAnswer(step, text){
+  if(step.type === 'choice'){
+    const idx = matchChoiceIndex(text, step.choices);
+    if(idx >= 0){ onChoiceClick(step.choices[idx]); return true; }
+  } else if(step.type === 'entity-loop'){
+    const outcome = matchEntityOutcome(text);
+    if(outcome){ advanceEntity(outcome); return true; }
+  }
+  return false;
+}
+
+let choiceInterimTimer = null;
+function clearChoiceInterimTimer(){ if(choiceInterimTimer){ clearTimeout(choiceInterimTimer); choiceInterimTimer = null; } }
+function scheduleChoiceInterimCheck(){
+  clearChoiceInterimTimer();
+  choiceInterimTimer = setTimeout(() => {
+    choiceInterimTimer = null;
+    if(captureMode !== 'answer' || current < 0) return;
+    const step = flow[current];
+    if(!step || (step.type !== 'choice' && step.type !== 'entity-loop')) return;
+    tryMatchStepAnswer(step, qAnswer.value || '');
+  }, 650);
+}
+
+function beginCapture(){
+  clearChoiceInterimTimer();
+  segmentFinal = flow[current].answer || '';
+  if(openaiEnabled){
+    captureMode = 'answer';
+    startRecordingSegment();
+    setStatus('listening', 'Slušam odgovor…');
+    resetSilenceTimer();
+    return;
+  }
+  captureMode = 'answer';
+  setStatus('listening', 'Slušam odgovor…');
+  resetSilenceTimer();
+}
+
+// ---------- silence -> gentle check-in (samo jednom po koraku) ----------
+let silenceTimer = null;
+const SILENCE_CHECK_MS = 14000;
+function clearSilenceTimer(){ if(silenceTimer){ clearTimeout(silenceTimer); silenceTimer = null; } }
+function resetSilenceTimer(){
+  clearSilenceTimer();
+  if(!voiceModeEnabled) return;
+  const step = flow[current];
+  if(step && step.silenceChecked) return; // već smo jednom pitali na ovom koraku — ne ponavljaj
+  if(stage === 'answer') silenceTimer = setTimeout(triggerSilenceCheckIn, SILENCE_CHECK_MS);
+}
+function triggerSilenceCheckIn(){
+  if(stage !== 'answer') return;
+  const step = flow[current];
+  if(!step || step.silenceChecked) return;
+  if(step.type === 'choice'){
+    // za da/ne pitanja ne čekamo da nešto već bude zapisano — samo blago podsetimo, jednom
+    step.silenceChecked = true;
+    stage = 'checkin';
+    speak(genderize('Slobodno reci samo da ili ne, kad god si {spreman|spremna}.'), () => { stage = 'answer'; });
+    return;
+  }
+  if(!(step.answer && step.answer.trim().length)) { resetSilenceTimer(); return; }
+  step.silenceChecked = true;
+  stage = 'checkin';
+  speak(genderize('Je li to sve? Ako si {gotov|gotova}, pritisni bilo koji taster da nastavimo — inače samo nastavi da pričaš.'), () => {
+    stage = 'answer';
+  });
+}
+
+// ---------- rendering ----------
+function updateProgress(){
+  const pct = Math.min(96, ((current+1) / Math.max(flow.length,1)) * 100);
+  progressFill.style.width = pct + '%';
+  progressLabel.textContent = `Korak ${current+1} — ${flow[current].phase}`;
+}
+
+function hideAllActionRows(){
+  defaultActions.classList.add('hidden');
+  loopActions.classList.add('hidden');
+  choiceActions.classList.add('hidden');
+  entityActions.classList.add('hidden');
+}
+
+function renderStep(){
+  const step = flow[current];
+  const oldNote = document.getElementById('micFallbackNote');
+  if(oldNote) oldNote.remove();
+
+  qEyebrow.textContent = step.phase;
+  qTitle.textContent = step.title;
+  qPrompt.textContent = genderize(step.prompt);
+  qAnswer.value = step.answer || '';
+  updateProgress();
+
+  hideAllActionRows();
+  const showBack = current > 0;
+
+  if(step.type === 'confirm'){
+    qAnswer.classList.add('hidden');
+    defaultActions.classList.remove('hidden');
+    backBtn.style.visibility = showBack ? 'visible' : 'hidden';
+    nextBtn.textContent = genderize('{Uradio|Uradila} sam, nastavi');
+    spaceHint.textContent = 'bilo koji taster → dalje · ENTER → nazad';
+  } else if(step.type === 'text'){
+    qAnswer.classList.remove('hidden');
+    defaultActions.classList.remove('hidden');
+    backBtn.style.visibility = showBack ? 'visible' : 'hidden';
+    nextBtn.textContent = step.isFinal ? 'Zabeleži i pogledaj pregled' : 'Zabeleži i nastavi';
+    spaceHint.textContent = 'bilo koji taster → dalje · ENTER → nazad';
+  } else if(step.type === 'text-loop'){
+    qAnswer.classList.remove('hidden');
+    loopActions.classList.remove('hidden');
+    backBtnLoop.style.visibility = showBack ? 'visible' : 'hidden';
+    spaceHint.textContent = 'taster → to je sve · ENTER → nazad · za još samo klikni dugme';
+  } else if(step.type === 'choice'){
+    // U glasovnom modu ostani zatvorenih očiju: reci "da" ili "ne" (ili sličan
+    // odgovor) i sistem sam prepoznaje i nastavlja. Dugmad ostaju kao rezervni,
+    // ručni način ako je lakše kliknuti.
+    qAnswer.classList.toggle('hidden', !voiceModeEnabled);
+    choiceActions.classList.remove('hidden');
+    backBtnChoice.style.visibility = showBack ? 'visible' : 'hidden';
+    choiceList.innerHTML = '';
+    step.choices.forEach((choice, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = genderize(choice.label);
+      btn.addEventListener('click', () => onChoiceClick(choice));
+      choiceList.appendChild(btn);
+    });
+    spaceHint.textContent = 'reci da/ne ili klikni · ENTER → nazad';
+  } else if(step.type === 'entity-loop'){
+    qAnswer.classList.remove('hidden');
+    entityActions.classList.remove('hidden');
+    backBtnEntity.style.visibility = showBack ? 'visible' : 'hidden';
+    spaceHint.textContent = 'reci odgovor ili klikni · ENTER → nazad';
+  }
+
+  if(voiceModeEnabled){
+    voiceStatusBar.classList.remove('hidden');
+    if(step.type === 'text' || step.type === 'text-loop' || step.type === 'entity-loop' || step.type === 'choice'){
+      voiceControls.classList.remove('hidden');
+      toggleMicBtn.style.display = openaiEnabled ? 'none' : 'inline-block';
+      toggleMicBtn.textContent = micPaused ? '🎙️ Nastavi mikrofon' : '🎙️ Pauziraj mikrofon';
+    } else {
+      voiceControls.classList.add('hidden');
+    }
+  } else {
+    voiceStatusBar.classList.add('hidden');
+    voiceControls.classList.add('hidden');
+  }
+}
+
+function stepNeedsCapture(step){
+  return step.type === 'text' || step.type === 'text-loop' || step.type === 'entity-loop' || step.type === 'choice';
+}
+
+function beginStepFlow(){
+  const step = flow[current];
+  clearSilenceTimer();
+  const needsCapture = stepNeedsCapture(step);
+  if(voiceModeEnabled){
+    captureMode = null;
+    stage = 'speaking';
+    speak(genderize(step.prompt), () => {
+      if(needsCapture){ stage = 'answer'; beginCapture(); }
+      else { stage = 'idle'; }
+    });
+  } else {
+    stage = needsCapture ? 'answer' : 'idle';
+  }
+}
+
+// ---------- input sync ----------
+qAnswer.addEventListener('input', () => { if(current >= 0) flow[current].answer = qAnswer.value; });
+
+// ---------- navigation ----------
+function interruptSpeechIfAny(){
+  if(stage === 'speaking' || stage === 'checkin'){
+    if(currentAudioEl){ try{ currentAudioEl.pause(); }catch(e){} currentAudioEl = null; }
+    if(speechSupported) synth.cancel();
+    stage = 'answer';
+  }
+}
+
+async function finalizeCapture(){
+  captureMode = null;
+  clearSilenceTimer();
+  clearChoiceInterimTimer();
+  if(openaiEnabled){
+    setStatus('thinking', 'Transkribujem…');
+    const blob = await stopRecordingSegment();
+    if(blob){
+      const text = await transcribeWithWhisper(blob);
+      if(text !== null && text.length){
+        flow[current].answer = ((flow[current].answer || '') + ' ' + text).trim();
+        qAnswer.value = flow[current].answer;
+      }
+    }
+  }
+}
+
+function goNext(){
+  captureMode = null;
+  clearChoiceInterimTimer();
+  if(flow[current].isFinal){ finishSession(); return; }
+  let nextIndex = current + 1;
+  if(flow[current].skipNext && nextIndex < flow.length) nextIndex++;
+  if(nextIndex < flow.length){
+    current = nextIndex;
+    renderStep();
+    window.scrollTo({top:0, behavior:'smooth'});
+    beginStepFlow();
+  } else {
+    finishSession();
+  }
+}
+
+async function advanceConfirm(){
+  interruptSpeechIfAny();
+  if(stage === 'speaking' || stage === 'checkin') return; // interrupt already handled, wait for next click
+  goNext();
+}
+
+async function advanceText(){
+  interruptSpeechIfAny();
+  await finalizeCapture();
+  const step = flow[current];
+  if(!step.optionalSkip && !bypassVagueCheck){
+    const attempts = nudgeAttempts[step.uid] || 0;
+    if(attempts < 2){
+      setStatus('thinking', 'Proveravam odgovor…');
+      const vague = await agentIsVague(step.title, step.answer);
+      if(vague){
+        nudgeAttempts[step.uid] = attempts + 1;
+        const nudge = step.deepenPrompt || 'Probaj ponovo, ne cenzuriši se — prva stvar koja ti dođe na pamet je obično tačna.';
+        if(voiceModeEnabled){ await speakAwait(genderize(nudge)); }
+        stage = 'answer'; beginCapture();
+        return;
+      }
+    }
+  }
+  bypassVagueCheck = false;
+  setStatus('thinking', 'Čistim transkript…');
+  step.answer = await agentCleanupTranscript(step.answer);
+  qAnswer.value = step.answer;
+  if(step.skipIf && step.skipIf(step.answer)) step.skipNext = true;
+  goNext();
+}
+
+function cloneLoopStep(step){
+  return mkLoop(nextUid(step.uid.split('_')[0]), step.phase, step.title, step.prompt);
+}
+
+async function advanceLoop(again){
+  interruptSpeechIfAny();
+  await finalizeCapture();
+  const step = flow[current];
+  step.answer = await agentCleanupTranscript(step.answer || '');
+  qAnswer.value = step.answer;
+  if(again){
+    flow.splice(current+1, 0, cloneLoopStep(step));
+  }
+  goNext();
+}
+
+function onChoiceClick(choice){
+  interruptSpeechIfAny();
+  const step = flow[current];
+  step.answer = choice.label;
+  choice.action();
+  goNext();
+}
+
+async function advanceEntity(outcomeLabel){
+  interruptSpeechIfAny();
+  await finalizeCapture();
+  const step = flow[current];
+  step.answer = (step.answer ? step.answer + '\n' : '') + (outcomeLabel ? `Ishod: ${outcomeLabel}` : '');
+  if(outcomeLabel){
+    flow.splice(current+1, 0, ...buildStabilizacija());
+  } else {
+    const nextAsk = step.askType === 'ko' ? 'sta' : 'ko';
+    flow.splice(current+1, 0, mkEntityStep(nextAsk));
+  }
+  goNext();
+}
+
+// ---------- finishing ----------
+// ---------- screen wake lock (mobilni: ne dozvoli da se ekran ugasi tokom sesije) ----------
+let wakeLock = null;
+async function acquireWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try{
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  }catch(e){ console.log('Wake lock nije dostupan (ok je, sesija radi normalno i bez toga):', e); }
+}
+function releaseWakeLock(){
+  if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async () => {
+  // Ako korisnik nakratko prebaci aplikaciju pa se vrati, obnovi wake lock
+  // (telefoni ga automatski oslobode kad ekran legne ili se app zamrzne).
+  if(document.visibilityState === 'visible' && sessionActive && !screenStep.classList.contains('hidden')){
+    await acquireWakeLock();
+  }
+});
+
+async function finishSession(){
+  if(speechSupported) synth.cancel();
+  clearSilenceTimer();
+  sessionActive = false;
+  captureMode = null;
+  releaseWakeLock();
+  if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} recognition = null; }
+  if(audioActivityInterval){ clearInterval(audioActivityInterval); audioActivityInterval = null; }
+
+  if(voiceModeEnabled){
+    try{
+      await speakAwait(genderize('{Prošao|Prošla} si kroz ceo tok. Udahni duboko nekoliko puta, oseti podlogu pod sobom, i kad si {spreman|spremna}, otvori oči.'));
+    }catch(e){}
+  }
+  await saveSessionToStorage();
+  showReview();
+}
+
+// ---------- button wiring ----------
+let activeApp = null; // 'fer' | 'memento'
+
+nextBtn.addEventListener('click', () => {
+  if(activeApp === 'fer'){ advance(); return; }
+  const step = flow[current];
+  if(step.type === 'confirm') advanceConfirm();
+  else advanceText();
+});
+backBtn.addEventListener('click', () => {
+  if(activeApp === 'fer'){ ferGoBack(); return; }
+  goBack();
+});
+backBtnLoop.addEventListener('click', goBack);
+backBtnChoice.addEventListener('click', goBack);
+backBtnEntity.addEventListener('click', goBack);
+
+function goBack(){
+  if(current === 0) return;
+  interruptSpeechIfAny();
+  captureMode = null;
+  current--;
+  renderStep();
+  window.scrollTo({top:0, behavior:'smooth'});
+  beginStepFlow();
+}
+
+loopAgainBtn.addEventListener('click', () => advanceLoop(true));
+loopDoneBtn.addEventListener('click', () => advanceLoop(false));
+
+entityAgainBtn.addEventListener('click', () => advanceEntity(null));
+entityOutcome1.addEventListener('click', () => advanceEntity('To sam samo ja.'));
+entityOutcome2.addEventListener('click', () => advanceEntity('Ostala je samo praznina.'));
+entityOutcome3.addEventListener('click', () => advanceEntity('Otišao je entitet.'));
+
+repeatBtn.addEventListener('click', () => {
+  if(!voiceModeEnabled) return;
+  if(activeApp === 'fer'){ ferRepeatCurrent(); return; }
+  const step = flow[current];
+  captureMode = null;
+  stage = 'speaking';
+  speak(genderize(step.prompt), () => {
+    if(stepNeedsCapture(step)){ stage = 'answer'; beginCapture(); } else { stage = 'idle'; }
+  });
+});
+
+toggleMicBtn.addEventListener('click', () => {
+  micPaused = !micPaused;
+  if(micPaused){
+    if(recognition){ try{ recognition.stop(); }catch(e){} }
+    toggleMicBtn.textContent = '🎙️ Nastavi mikrofon';
+    setStatus('', 'Mikrofon pauziran.');
+  } else {
+    toggleMicBtn.textContent = '🎙️ Pauziraj mikrofon';
+    if(recognition){ try{ recognition.start(); }catch(e){} }
+    setStatus('listening', 'Slušam odgovor…');
+  }
+});
+
+async function resolveChoiceBySpokenText(){
+  const step = flow[current];
+  await finalizeCapture();
+  const text = qAnswer.value || step.answer || '';
+  const idx = matchChoiceIndex(text, step.choices);
+  if(idx >= 0){ onChoiceClick(step.choices[idx]); return; }
+  if(!text.trim().length){
+    if(voiceModeEnabled) speak(genderize('Reci samo da ili ne, ili klikni odgovor koji ti odgovara.'), () => { stage = 'answer'; });
+    return;
+  }
+  setStatus('thinking', 'Proveravam odgovor…');
+  const optionsList = step.choices.map((c, i) => `${i}: ${c.label}`).join('\n');
+  const system = "Korisnik je izgovorio odgovor na pitanje sa ponuđenim opcijama u ličnoj praksi regresije. "
+    + "Vrati isključivo redni broj opcije (samo cifru) koja najbolje odgovara onome što je korisnik rekao. "
+    + "Ako zaista ne možeš da odrediš, vrati tačno reč 'NEJASNO'.";
+  const resp = await callAgent(system, `Opcije:\n${optionsList}\n\nOdgovor korisnika: "${text}"`);
+  const parsed = resp ? parseInt(resp.trim(), 10) : NaN;
+  if(!isNaN(parsed) && step.choices[parsed]){ onChoiceClick(step.choices[parsed]); return; }
+  setStatus('', genderize('{Nisam siguran|Nisam sigurna} šta si {rekao|rekla} — klikni odgovor koji ti odgovara.'));
+  if(voiceModeEnabled) speak(genderize('{Nisam sasvim siguran|Nisam sasvim sigurna} — reci ponovo jasno da ili ne, ili klikni odgovor koji ti odgovara.'), () => { stage = 'answer'; });
+}
+
+async function resolveEntityBySpokenText(){
+  const step = flow[current];
+  await finalizeCapture();
+  const text = qAnswer.value || step.answer || '';
+  const outcome = matchEntityOutcome(text);
+  advanceEntity(outcome || null);
+}
+
+const IGNORED_KEYS = new Set(['Shift','Control','Alt','Meta','CapsLock','Tab','Escape','ContextMenu']);
+document.addEventListener('keydown', (e) => {
+  if(screenStep.classList.contains('hidden')) return;
+  if(document.activeElement === qAnswer) return;
+  if(IGNORED_KEYS.has(e.key)) return;
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(activeApp === 'fer') ferGoBack(); else goBack();
+    return;
+  }
+  e.preventDefault();
+  if(activeApp === 'fer'){ advance(); return; }
+  const step = flow[current];
+  if(!step) return;
+  if(step.type === 'confirm') advanceConfirm();
+  else if(step.type === 'text') advanceText();
+  else if(step.type === 'choice') resolveChoiceBySpokenText();
+  else if(step.type === 'entity-loop') resolveEntityBySpokenText();
+  else if(step.type === 'text-loop') advanceLoop(false);
+  // "ima još" (nastavi petlju) namerno ostaje samo na klik na to dugme —
+  // to je jedina namerna radnja koju tastatura ne preuzima, da ne bi
+  // slučajno produžila petlju kad si samo hteo/htela da nastaviš dalje.
+});
+
+document.getElementById('testVoiceBtn').addEventListener('click', () => {
+  const note = document.getElementById('testVoiceNote');
+  note.classList.remove('hidden');
+  if(!speechSupported){
+    note.textContent = 'Ovaj pregledač uopšte ne podržava sintetizovani glas (speechSynthesis) — koristićemo ručni, tekstualni mod.';
+    return;
+  }
+  note.textContent = 'Puštam probni glas… ako ne čuješ ništa za par sekundi, proveri jačinu zvuka na telefonu i da li je telefon u tihom/vibracionom režimu (ring/media zvuk, ne samo obavesti).';
+  synth.cancel();
+  const utter = new SpeechSynthesisUtterance('Ovo je probni glas. Ako me čuješ, sve je u redu.');
+  if(selectedVoice) utter.voice = selectedVoice;
+  utter.rate = 0.95;
+  utter.onend = () => { note.textContent = 'Test završen. Ako nisi ništa čuo ili čula, proveri jačinu zvuka ili probaj drugi pregledač.'; };
+  utter.onerror = () => { note.textContent = 'Test nije uspeo — ovaj pregledač/okruženje verovatno blokira glas. Probaj da otvoriš app direktno u Chrome-u (claude.ai), a ne kroz ugrađeni prozor.'; };
+  synth.speak(utter);
+});
+
+// ---------- start ----------
+function unlockSpeechSynthesis(){
+  if(!speechSupported) return;
+  try{
+    // Tiho "otključavanje" TTS-a unutar samog korisničkog dodira — na
+    // Androidu (Chrome/WebView) speechSynthesis ume tiho da ne uradi ništa
+    // ako se prvi stvarni speak() pozove tek nakon nekoliko await koraka
+    // udaljenih od klika. Ovaj prazan izgovor rešava to u većini slučajeva.
+    synth.cancel();
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0;
+    synth.speak(unlock);
+  }catch(e){}
+}
+
+async function startMementoSession(){
+  sessionThematic = topicDefined.checked;
+  sessionQuestion = sessionThematic ? topicQuestion.value.trim() : '';
+  nudgeAttempts = {};
+
+  flow = buildInitialFlow();
+  current = 0;
+
+  screenHub.classList.add('hidden');
+  screenStep.classList.remove('hidden');
+  renderStep();
+
+  if(voiceModeEnabled){
+    sessionActive = true;
+    micPaused = false;
+    if(openaiEnabled){
+      try{ await initMediaStreamOnce(); }
+      catch(e){
+        console.error('mic init error', e);
+        openaiEnabled = false;
+        if(recognitionSupported){ const rec = initRecognitionOnce(); captureMode = null; try{ rec.start(); }catch(err){} }
+        else { handleMicUnavailable(); }
+      }
+    } else if(recognitionSupported){
+      const rec = initRecognitionOnce();
+      captureMode = null;
+      try{ rec.start(); }catch(e){}
+    } else {
+      voiceModeEnabled = false;
+    }
+  }
+  beginStepFlow();
+}
+
+// ---------- review ----------
+function showReview(){
+  screenStep.classList.add('hidden');
+  screenReview.classList.remove('hidden');
+  document.getElementById('reviewTitle').textContent = genderize('Ono što si {prošao|prošla}');
+  document.getElementById('reviewIntroNote').textContent = genderize('Ovde je, redom, ceo tok sesije — svaki korak i ono što si {zabeležio|zabeležila}.');
+  const list = document.getElementById('reviewList');
+  list.innerHTML = '';
+  flow.forEach((step) => {
+    const item = document.createElement('div');
+    item.className = 'review-item';
+    const phaseEl = document.createElement('div');
+    phaseEl.className = 'review-phase';
+    phaseEl.textContent = step.phase;
+    item.appendChild(phaseEl);
+    const qEl = document.createElement('div');
+    qEl.className = 'review-q';
+    qEl.textContent = step.title;
+    item.appendChild(qEl);
+    const aEl = document.createElement('div');
+    const hasAnswer = step.answer && step.answer.trim().length;
+    aEl.className = 'review-answer' + (hasAnswer ? '' : ' empty');
+    aEl.textContent = hasAnswer ? step.answer : (step.type === 'confirm' ? '(urađeno)' : '(nije zabeleženo)');
+    item.appendChild(aEl);
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  let text = "MEMENTO — transkript sesije\n";
+  text += "=".repeat(44) + "\n\n";
+  flow.forEach((step) => {
+    text += `[${step.phase}] ${step.title}\n`;
+    text += `${step.answer && step.answer.trim() ? step.answer : '(nije zabeleženo)'}\n\n`;
+  });
+  const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'memento-transkript.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(confirm('Sve zabeležene odgovore u ovoj sesiji ćeš izgubiti. Počinješ ponovo?')){
+    if(speechSupported) synth.cancel();
+    if(currentAudioEl){ try{ currentAudioEl.pause(); }catch(e){} currentAudioEl = null; }
+    sessionActive = false; captureMode = null; clearSilenceTimer();
+    releaseWakeLock();
+    if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} recognition = null; }
+    if(audioActivityInterval){ clearInterval(audioActivityInterval); audioActivityInterval = null; }
+    stage = 'idle'; micPaused = false; nudgeAttempts = {};
+    if(activeApp === 'fer') resetFerState();
+    flow = []; current = -1;
+    activeApp = null;
+    screenStep.classList.add('hidden');
+    screenReview.classList.add('hidden');
+    screenReviewFer.classList.add('hidden');
+    screenHub.classList.remove('hidden');
+    document.querySelectorAll('.app-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('ferExtra').classList.add('hidden');
+    document.getElementById('mementoExtra').classList.add('hidden');
+    window.scrollTo({top:0});
+  }
+});
+
+// ---------- hub: izbor prakse ----------
+document.querySelectorAll('.app-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    if(e.target.closest('.app-card-extra')) return; // klik unutar otvorenih opcija ne menja izbor
+    document.querySelectorAll('.app-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('ferExtra').classList.add('hidden');
+    document.getElementById('mementoExtra').classList.add('hidden');
+    card.classList.add('selected');
+    document.getElementById(card.dataset.app === 'fer' ? 'ferExtra' : 'mementoExtra').classList.remove('hidden');
+  });
+});
+
+// Čita zajednička podešavanja sa huba (rod, glas, OpenAI) i pokreće izabranu praksu.
+// Vraća false (i prikazuje upozorenje) ako rod nije izabran.
+async function readHubSettingsOrWarn(){
+  const genderRadio = document.querySelector('input[name="genderChoice"]:checked');
+  if(!genderRadio){
+    document.getElementById('genderWarning').classList.remove('hidden');
+    return false;
+  }
+  document.getElementById('genderWarning').classList.add('hidden');
+  userGender = genderRadio.value;
+  voiceModeEnabled = voiceToggle.checked;
+  openaiApiKey = openaiKeyInput.value.trim();
+  openaiEnabled = voiceModeEnabled && openaiToggle.checked && openaiApiKey.length > 0;
+  if(recogLangSelect){ recognitionLang = recogLangSelect.value; whisperLanguage = recogLangSelect.value.slice(0,2); }
+  await saveProfile();
+  await acquireWakeLock();
+  return true;
+}
+
+document.getElementById('startFerBtn').addEventListener('click', async () => {
+  unlockSpeechSynthesis();
+  if(!(await readHubSettingsOrWarn())) return;
+  activeApp = 'fer';
+  await startFerSession();
+});
+
+document.getElementById('startMementoBtn').addEventListener('click', async () => {
+  unlockSpeechSynthesis();
+  if(!(await readHubSettingsOrWarn())) return;
+  activeApp = 'memento';
+  await startMementoSession();
+});
+
+// ==========================================================================
+// FER DNEVNIK — specifičan kod (deli glas/mikrofon/agent infrastrukturu
+// iznad sa Mementom; sopstvena pitanja, naboj/orb, i tok pitanja)
+// ==========================================================================
+
+const questions = [
+  { id:1, phase:"Faza 1", title:"Definicija problema", key:"problem",
+    prompt:"Izaberi temu koju sada želiš da riješiš — nešto što te smeta, plaši ili opterećuje, bilo iz skorašnjeg trenutka ili iz davnina. Ako ih ima više, izaberi onu sa najjačim nabojem.\n\nU dvije do tri rečenice, bez širenja i bez objašnjavanja: šta te muči? Šta želiš da riješiš?",
+    scale:false },
+  { id:2, phase:"Faza 1", title:"Prihvatanje, bez otpora", scale:false,
+    prompt:"Dodirni sternum (tačku na grudima) kažiprstom i srednjim prstom. Polako, naglas, izgovori:\n\n„Iako osjećam [emocija] u vezi [situacija], prihvatam i volim sebe, i ovaj osjećaj — jer i to je dio mene.“\n\nMožeš ponoviti ovu rečenicu i par puta, polako, dok je zaista ne osjetiš. Kad je {prihvatio|prihvatila}, samo nastavi." },
+  { id:3, phase:"Faza 1", title:"Zamrznuta slika (snapshot)",
+    prompt:"Vrati se u trenutak najvećeg intenziteta tog događaja i zaustavi ga, kao film na pauzi. Gledaj svojim očima — ne opisuj gdje si, ne objašnjavaj zašto. Samo ono što vidiš pred sobom, u tom trenutku (predmete, boje, ljude, prostor).",
+    scale:false },
+  { id:4, phase:"Faza 1", title:"Misli u tom trenutku", scale:false, multiItem:true,
+    prompt:"Koje su ti misli prošle kroz glavu u tom najintenzivnijem trenutku? Navedi tri do pet misli, sirovih i bez cenzure. Odmah posle svake misli reci i koliko je jaka, na skali od nula do deset — na primjer: „Ne mogu više, devet. Sramota, sedam.“" },
+  { id:5, phase:"Faza 1", title:"Emocije", scale:false, multiItem:true,
+    prompt:"Šta osjećaš najjače, sada, u tom trenutku? Navedi tri do pet emocija. Za svaku reci i gdje je osjećaš u tijelu, i koliko je jaka, od nula do deset — na primjer: „Tugu u grudima, osam. Bijes u stomaku, devet.“" },
+  { id:6, phase:"Faza 1", title:"Tjelesne senzacije", scale:false, inlineCharge:true,
+    prompt:"Polako skeniraj tijelo od glave do pete. Šta fizički osjećaš u tom trenutku — drhtanje, stezanje, pritisak, žmarci, vrtoglavica? Samo senzacija, bez objašnjenja. Na kraju reci i koliko je jaka, od nula do deset — na primjer: „Pritisak u grudima, devet.“" },
+  { id:7, phase:"Faza 1", title:"Poražavajuće odluke o sebi", key:"porazavajuca_odluka", scale:false, multiItem:true,
+    prompt:"Koje poražavajuće odluke ili zaključke o sebi imaš u tom trenutku? Navedi tri do pet (na primjer: „Ne vrijedim“, „Nisam {voljen|voljena}“, „Moram biti {jak|jaka}“…), i odmah posle svake reci koliko je jaka od nula do deset — na primjer: „Ne vrijedim, osam. Moram biti jak, šest.“ Od koga misliš da si to {preuzeo|preuzela} — mame, tate, škole, društva?" },
+  { id:8, phase:"Faza 1", title:"Gubitak i dobit", scale:false, inlineCharge:true,
+    prompt:"Šta misliš da gubiš u ovoj situaciji — šta ti je oduzeto ili nedostupno?\n\nA sada teže pitanje: šta ti ova situacija zapravo donosi? Pažnju, opravdanje, izbjegavanje, validaciju kroz bol? Obično postoji neka „dobit“, iako je isprva teško vidjeti. Na kraju reci i koliko je ta dobit stvarna, od nula do deset.",
+    nudges:["Nema obrasca bez koristi — ništa ne radimo slučajno. Možda ti ovo daje pažnju, izbjegavanje, opravdanje da nešto ne uradiš, ili priliku da budeš u centru pažnje? Šta ti ovo zaista daje?",
+            "Probaj ponovo — svaki obrazac postoji jer nešto, svjesno ili nesvjesno, dobijaš kroz njega. Možda izolaciju, ili vrijeme za sebe koje inače ne bi tražio ili tražila otvoreno?"] },
+  { id:9, phase:"Faza 1", title:"Šta izbjegavaš", scale:false, inlineCharge:true,
+    prompt:"Šta pokušavaš da izbjegneš ili spriječiš u ovoj situaciji? Šta ne želiš da se desi, ili da priznaš — bez cenzure, bez opravdanja. Na kraju reci i koliki je naboj na to, od nula do deset.",
+    nudges:["Uvijek postoji nešto što ne želiš da osjetiš, vidiš ili priznaš. Možda da si i sam ili sama doprinio ili doprinijela ovom problemu? Ili da ti na neki način ova situacija odgovara?",
+            "Ono što izbjegavaš — to te drži zarobljenim. Probaj ponovo: šta tačno ne želiš da priznaš sebi?"] },
+  { id:10, phase:"Faza 1", title:"Uloga koju igraš", key:"uloga", scale:false, inlineCharge:true,
+    prompt:"U ovom problemu, ljudi nesvjesno igraju uloge. Za svaku, procijeni koliko se identifikuješ s njom i od kada je igraš:\n\n• Žrtva — nemoć, bespomoćnost, „nešto mi se stalno dešava“\n• Spasilac — moraš sve popraviti, pomoći, spasiti druge\n• Progonilac — neko mora platiti, biti kažnjen ili osuđen\n• Sudija — gledaš druge (ili sebe) s visine, znaš „šta je pravo“\n\nZapiši za koju ulogu osjećaš najviše naboja i koliko dugo. Na kraju reci i koliko je jaka ta identifikacija, od nula do deset." },
+  { id:11, phase:"Faza 1", title:"Kako te okolina vidi", scale:false, inlineCharge:true,
+    prompt:"Kako misliš da te drugi ljudi vide — kada ne znaju šta se zaista dešava u tebi? A kako bi te vidjeli kada bi znali kroz šta zaista prolaziš? Na kraju reci i koliki je naboj na tu razliku, od nula do deset." },
+  { id:12, phase:"Faza 1", title:"Ko je sve uključen", scale:false, customFlow:true,
+    prompt:"Uvijek su tu mama, tata i Bog — jer tu obično ima najviše naboja. Da li ima još neko ko ima veze sa ovom situacijom? Na primjer suprug ili supruga, sestra, brat, komšija, prijatelj. Ako nema nikog drugog, samo reci 'nema drugih'." },
+  { id:13, phase:"Faza 1", title:"Iz njihove tačke gledišta", scale:false, customFlow:true,
+    prompt:"Sada ćemo, jedno po jedno, ući u tačku gledišta svake osobe koju si pomenuo ili pomenula." },
+  { id:14, phase:"Faza 1", title:"Cilj emocije", scale:false, inlineCharge:true,
+    prompt:"Uđi u tačku gledišta glavne emocije iz ovog problema. Kao ta emocija, odgovori: koji je tvoj cilj u mom životu? Zašto postojiš? Šta pozitivno pokušavaš da postigneš time što si tu? Na kraju reci i koliki je naboj u ovom uvidu, od nula do deset." },
+  { id:15, phase:"Faza 1", title:"Skrivena namjera", scale:false, inlineCharge:true,
+    prompt:"Zaboravi na emociju i na druge ljude. Iz najiskrenijeg mjesta u sebi: zašto se zaista nalaziš u ovoj situaciji? Koja je tvoja skrivena namjera — cilj koji ne izgovaraš naglas? Na kraju reci i koliki je naboj u ovom uvidu, od nula do deset." },
+  { id:16, phase:"Faza 1", title:"Koga kažnjavaš kroz sebe", scale:false, inlineCharge:true,
+    prompt:"Kroz svoje kažnjavanje ili patnju u ovoj situaciji — koga zaista kažnjavaš? Ko treba da vidi koliko ti je teško, da bi osjetio krivicu, sažaljenje, ili ti se izvinio? Na kraju reci i koliki je naboj u ovom uvidu, od nula do deset.",
+    nudges:["Ako nema odmah odgovora: ko treba da vidi koliko ti je teško, da bi osjetio krivicu, da bi te sažalio, da bi ti se izvinio? Mama ili tata? Probaj ponovo."] },
+  { id:17, phase:"Faza 1", title:"Na šta te ovo podsjeća", key:"djetinjstvo", scale:false, inlineCharge:true,
+    prompt:"Pusti da se pojavi najranija slika iz djetinjstva gdje si se {osjećao|osjećala} isto ovako — možda zaboravljena, možda potisnuta. Gdje si, ko je oko tebe, koliko imaš godina, šta se dešava?\n\nUđi u to dijete. Šta osjeća? Ko ga je izdao, napustio ili kaznio? Koju odluku o sebi ili svijetu tada donosi? Na kraju reci i koliki je naboj u toj sceni, od nula do deset." },
+  { id:18, phase:"Faza 1", title:"Iscjeljenje djeteta u sebi",
+    prompt:"Zamisli tu manju verziju sebe kako stoji sa tvoje LIJEVE strane, u toj sceni, ali bez drugih učesnika. Pogledaj je u oči. Približi se, uzmi je u ruke i reci naglas (svojim riječima, ili ovako):\n\n„Vidim te. Znam kroz šta si {prošao|prošla}. Žao mi je što nisam {bio|bila} tu. Od danas sam ovdje za tebe — prihvatam te i volim baš {takvog|takvu} {kakav|kakva} jesi.“\n\nZapiši kako je to bilo, i šta si joj još {rekao|rekla}.",
+    scale:false },
+  { id:19, phase:"Faza 1", title:"Razgovor sa starijom verzijom sebe",
+    prompt:"Pogledaj sada na svoju DESNU stranu — tu stoji starija verzija tebe, ona koja je ovaj problem već riješila. Pitaj je: „Kako i kada si {riješio|riješila} ovaj problem?“ Šta ti odgovara? Šta ti poručuje?",
+    scale:false },
+  { id:20, phase:"Faza 1", title:"Ima li još nešto", scale:false, inlineCharge:true,
+    prompt:"Nakon svega — da li u ovoj situaciji ima još nešto što ne želiš da otkriješ ili prihvatiš? Iskreno, šta je to? Na kraju reci i koliki je naboj na to, od nula do deset.",
+    nudges:["U redu je ako je teško da se odmah vidi. Probaj ponovo — šta je ta jedna stvar koju još uvijek izbjegavaš da priznaš sebi u vezi ove situacije?"] },
+  { id:21, phase:"Faza 1", title:"Zaključak", key:"zakljucak",
+    prompt:"Sada kada si {prošao|prošla} kroz cijeli tok — emocije, uloge, djetinjstvo, susret sa starijom verzijom sebe — koji je tvoj finalni uvid u vezi ove situacije?",
+    scale:false },
+  { id:22, phase:"Faza 1", title:"Praznina",
+    prompt:"Ne gradimo novi identitet — ne pretvaramo negativno u pozitivno, jer to je samo drugi pol istog naboja. Umjesto toga, pusti i to. Nisi ni to, ni ono, ni ime, ni uloga. Vrati se u prazan prostor prije svakog oblika. Šta osjećaš kada pustiš čak i potrebu da budeš neko ili nešto?",
+    scale:false },
+];
+
+const GENERIC_NUDGE = "Probaj ponovo, ne cenzuriši se — prva stvar koja ti dođe na pamet je obično tačan odgovor.";
+function pickNudge(q){
+  const list = q.nudges && q.nudges.length ? q.nudges : [GENERIC_NUDGE];
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+let responses = questions.map(q => ({ answer: "", chargeThen: null, chargeNow: null, savedOnce:false }));
+
+const screenReviewFer = document.getElementById('screen-review-fer');
+
+
+
+
+let userName = '';
+let sessionContext = { emotion: '', situation: '', people: [] };
+
+function orbSize(v){
+  return 8 + (v/10)*36;
+}
+
+
+
+// ---------- voice setup ----------
+
+
+function ferLoadVoices(){
+  if(!speechSupported) return;
+  const voices = synth.getVoices();
+  if(!voices.length) return;
+  voiceSelect.innerHTML = '';
+  const slavic = voices.filter(v => /^(sr|hr|bs)/i.test(v.lang));
+  const primary = slavic.length ? slavic : voices;
+  primary.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+  if(slavic.length){
+    voices.filter(v => /^en/i.test(v.lang)).slice(0,4).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+  }
+  // Ako je korisnik već nešto izabrao (ili je učitano iz prethodne sesije),
+  // uvek to poštuj — nikad ne prepisuj preko toga, čak ni kad pregledač
+  // ponovo pozove ovu funkciju usred sesije (Edge to zna da uradi).
+  if(userPickedVoiceName){
+    const stillThere = voices.find(v => v.name === userPickedVoiceName);
+    if(stillThere){
+      selectedVoice = stillThere;
+      voiceSelect.value = stillThere.name;
+      voiceSelectRow.classList.remove('hidden');
+      return;
+    }
+  }
+  if(!selectedVoice){
+    selectedVoice = pickBestVoice(voices);
+    if(selectedVoice) userPickedVoiceName = selectedVoice.name;
+  }
+  if(selectedVoice) voiceSelect.value = selectedVoice.name;
+  voiceSelectRow.classList.remove('hidden');
+}
+if(speechSupported){
+  ferLoadVoices();
+  synth.onvoiceschanged = ferLoadVoices;
+}
+voiceSelect.addEventListener('change', () => {
+  const voices = synth.getVoices();
+  selectedVoice = voices.find(v => v.name === voiceSelect.value) || selectedVoice;
+  userPickedVoiceName = selectedVoice ? selectedVoice.name : null;
+});
+
+if(!speechSupported || !recognitionSupported){
+  voiceToggle.checked = false;
+  voiceToggle.disabled = true;
+  voiceStatusNote.textContent = 'Tvoj pregledač ne podržava glasovni unos u potpunosti (radi najbolje u Chrome-u na računaru). Nastavićemo u ručnom modu — kucanje i klizač.';
+} else {
+  voiceStatusNote.textContent = 'Pregledač će jednom, na početku, pitati za dozvolu za mikrofon — dozvoli pristup. To se pita samo taj jedan put, ne ponovo za svako pitanje.';
+}
+
+if(recogLangSelect){
+  recogLangSelect.addEventListener('change', () => {
+    recognitionLang = recogLangSelect.value;
+    whisperLanguage = recogLangSelect.value.slice(0,2);
+  });
+}
+
+// ---------- optional OpenAI upgrade (paid, opt-in) ----------
+openaiToggle.addEventListener('change', () => {
+  openaiKeyRow.classList.toggle('hidden', !openaiToggle.checked);
+});
+
+
+
+
+// Prati jačinu zvuka na VEĆ odobrenom mikrofonskom stream-u (bez novog zahtjeva za dozvolu)
+// da bismo mogli da resetujemo tajmere tišine dok korisnik zaista govori — zamjena za
+// pregledačevo prepoznavanje koje smo namjerno isključili u OpenAI modu.
+function ferSetupAudioActivityMonitor(stream){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    if(audioActivityInterval) clearInterval(audioActivityInterval);
+    audioActivityInterval = setInterval(() => {
+      analyser.getByteTimeDomainData(data);
+      let sumSquares = 0;
+      for(let i = 0; i < data.length; i++){
+        const v = (data[i] - 128) / 128;
+        sumSquares += v * v;
+      }
+      const rms = Math.sqrt(sumSquares / data.length);
+      if(rms > 0.02){ // prag govora — podesi ako je previše/premalo osjetljivo
+        if(captureMode === 'answer') ferResetSilenceTimer();
+        if(captureMode === 'followup') resetFollowupSilenceTimer();
+      }
+    }, 400);
+  }catch(e){
+    console.error('audio activity monitor error', e);
+  }
+}
+
+async function ferStartRecordingSegment(){
+  if(!mediaStream) return;
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    try{ mediaRecorder.stop(); }catch(e){}
+  }
+  recordedChunks = [];
+  recordingStartTime = Date.now();
+  try{
+    mediaRecorder = new MediaRecorder(mediaStream);
+    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.start();
+  }catch(e){
+    console.error('MediaRecorder nije uspio da krene, pokušavam da osvježim mikrofon…', e);
+    try{
+      // stream je vjerovatno postao nevažeći (npr. traka je prestala biti aktivna) — zatraži novi
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      ferSetupAudioActivityMonitor(mediaStream);
+      recordedChunks = [];
+      recordingStartTime = Date.now();
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size > 0) recordedChunks.push(ev.data); };
+      mediaRecorder.start();
+    }catch(e2){
+      console.error('Mikrofon i dalje ne radi ni nakon osvježavanja', e2);
+      setStatus('', 'Problem sa mikrofonom — probaj da osvježiš stranicu (F5).');
+    }
+  }
+}
+
+
+
+
+
+
+async function ferTranscribeWithWhisper(blob){
+  if(!blob || blob.size < 1000){
+    // premalo (ili nimalo) zvuka snimljeno — vjerovatno je MediaRecorder zakasnio da krene
+    console.warn('Snimak je prazan ili prekratak (' + (blob ? blob.size : 0) + ' bajtova), preskačem transkripciju.');
+    return null;
+  }
+  const PRIMING_PROMPT = 'Da, naboj je sedam. Osjećam bol u stomaku.';
+  try{
+    const form = new FormData();
+    form.append('file', blob, 'audio.webm');
+    form.append('model', 'gpt-4o-transcribe');
+    form.append('language', whisperLanguage);
+    form.append('temperature', '0');
+    // Kratka srpska rečenica sa primerom broja — pomaže modelu da "zaključa" jezik i ne
+    // pokušava da nagađa drugi jezik na kratkim izgovorima (npr. samo jedan broj).
+    // NAMJERNO kratko i bez meta-instrukcija na engleskom (to je ranije zbunjivalo model).
+    form.append('prompt', PRIMING_PROMPT);
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${openaiApiKey}` },
+      body: form
+    });
+    if(!res.ok) throw new Error('Whisper API greška: ' + res.status);
+    const data = await res.json();
+    const text = cyrillicToLatin((data.text || '').trim());
+
+    // Poznati problem kod tihih/skoro tihih snimaka: model ponekad "odjekne" nazad sam
+    // prompt-primer umjesto da kaže da nije čuo govor. Ako se transkript skoro pa poklapa
+    // sa prompt-primerom, tretiramo to kao tišinu (nema stvarnog govora), ne kao pravi odgovor.
+    const normalize = (s) => s.toLowerCase().replace(/[.,!?„“"]/g, '').trim();
+    if(normalize(text) === normalize(PRIMING_PROMPT)) {
+      console.warn('Whisper je vjerovatno odjeknuo prompt-primer (tišina/skoro tišina) — ignorišem.');
+      return null;
+    }
+    return text;
+  }catch(e){
+    console.error('Whisper transcription error', e);
+    setStatus('', 'Whisper nije dostupan — prebacujem na ugrađeno prepoznavanje.');
+    return null;
+  }
+}
+
+// (ferSpeakOpenAI is defined near ferSpeak(), further below)
+
+// ---------- Claude agent (built into the tool, no key needed) ----------
+async function ferCallAgent(system, user){
+  // Kad postoji OpenAI ključ, koristi njega prvo — OpenAI dozvoljava pozive direktno iz
+  // lokalno otvorenog fajla (npr. dupli klik na .html), dok Anthropic API to ne dozvoljava
+  // van Claude.ai okruženja (CORS). Ako nema OpenAI ključa, probamo Anthropic (radi samo
+  // kad se ovaj alat koristi unutar Claude.ai razgovora).
+  if(openaiApiKey){
+    try{
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user }
+          ],
+          max_tokens: 300
+        })
+      });
+      if(!response.ok) throw new Error('OpenAI agent greška: ' + response.status);
+      const data = await response.json();
+      const text = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+      return text ? text.trim() : null;
+    }catch(e){
+      console.error('OpenAI agent error', e);
+      // nastavi dolje, probaj Anthropic kao rezervu
+    }
+  }
+  try{
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        system: system,
+        messages: [{ role: 'user', content: user }]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).map(b => b.text || '').join('').trim();
+    return text || null;
+  }catch(e){
+    console.error('Claude agent error (i OpenAI je vjerovatno bio nedostupan ili bez ključa)', e);
+    return null;
+  }
+}
+
+function ferLooksLikeEmptyPhrase(answer){
+  const cleaned = answer.toLowerCase().replace(/[.,!?„“"]/g, '').trim();
+  if(!cleaned) return true;
+  for(const phrase of KNOWN_EMPTY_PHRASES){
+    // tačno poklapanje, ili poznata prazna fraza plus najviše par dodatnih riječi ("ne znam baš")
+    if(cleaned === phrase) return true;
+    if(cleaned.startsWith(phrase) && cleaned.length <= phrase.length + 12) return true;
+  }
+  return false;
+}
+
+async function ferAgentIsVague(title, answer){
+  // Namerno blago: nudge se javlja samo za zaista prazne/izbegavajuće odgovore
+  // (npr. "ne znam", "ništa"), nikad samo zato što je odgovor kratak — kratki
+  // odgovori su u ličnom dnevniku potpuno legitimni.
+  if(!answer || answer.trim().length === 0) return true;
+  return ferLooksLikeEmptyPhrase(answer);
+}
+
+async function agentGoDeeper(title, answer){
+  // Za pitanja gdje treba guranje i kad odgovor NIJE prazan (npr. gubitak/dobit) —
+  // proceni je li odgovor već konkretan i validiran, ili treba još jedno "a šta još?".
+  const system = "Ti si klasifikator u ličnom refleksivnom dnevniku. Odgovori isključivo sa 'DA' "
+    + "ili 'NE'. Zadatak: za pitanje o dobiti/korist koju osoba ima od problema, proceni da li je "
+    + "odgovor već konkretan i specifičan (DA znači 'treba ići dublje, odgovor je još uopšten') "
+    + "ili je već dovoljno konkretan i imenovan (NE znači 'dovoljno je konkretno, ne treba dalje').";
+  const user = `Pitanje: "${title}"\nOdgovor: "${answer}"\n\nDa li treba ići dublje (DA/NE)?`;
+  const resp = await ferCallAgent(system, user);
+  if(resp === null) return false;
+  return resp.trim().toUpperCase().startsWith('DA');
+}
+
+async function ferAgentCleanupTranscript(text){
+  if(!text || !text.trim()) return text;
+  const system = "Dobićeš tekst dobijen automatskim prepoznavanjem govora (ASR), koji ponekad sadrži "
+    + "očigledne greške — pogrešno prepoznatu riječ koja nema smisla u kontekstu (npr. 'osjećam bez' "
+    + "umjesto 'osjećam bes', ili 'ne mogu da vjerem' umjesto 'ne mogu da vjerujem'). Tvoj zadatak je "
+    + "SAMO da ispraviš takve očigledne greške prepoznavanja govora i osnovnu gramatiku (padeže, "
+    + "slaganje), po logici konteksta. NE mijenjaj značenje, NE dodaji nove misli, NE skraćuj niti "
+    + "proširuj sadržaj — samo ispravi ono što je jasno pogrešno prepoznato. VRLO VAŽNO: nikada ne "
+    + "izostavljaj brojeve koji se pojavljuju u tekstu (npr. '5', '9', 'pet', 'devet') — to su ocjene "
+    + "jačine naboja i MORAJU ostati u tekstu, tačno uz riječ uz koju su izgovorene. Ako je tekst već "
+    + "razumljiv i smislen, vrati ga nepromijenjenog. Vrati isključivo ispravljeni tekst, bez objašnjenja.";
+  const resp = await ferCallAgent(system, text);
+  if(!resp) return text;
+  // sigurnosna provera: ako je agent greškom izbacio brojeve koji su postojali u originalu, radije
+  // zadrži original nego da izgubimo naboj-ocjene (npr. "bes 5, tuga 9" -> "bes, tuga")
+  const originalDigits = (text.match(/\d+/g) || []).length;
+  const cleanedDigits = (resp.match(/\d+/g) || []).length;
+  if(originalDigits > 0 && cleanedDigits < originalDigits) return text;
+  return resp;
+}
+
+async function agentReflectProblem(rawAnswer){
+  const system = "Tvoj jedini zadatak je da odgovor korisnika preformulišeš u tačno ovaj kalup, na "
+    + "srpskom jeziku: 'Problem koji danas rešavamo je: [ono što je korisnik rekao].' Ne dodaji "
+    + "nikakvo tumačenje, ne izmišljaj detalje, samo preformuliši postojeći sadržaj u tu rečenicu. "
+    + "Vrati samo tu jednu rečenicu.";
+  const resp = await ferCallAgent(system, rawAnswer);
+  return resp || `Problem koji danas rešavamo je: ${rawAnswer}`;
+}
+
+async function agentClassifyEmotionOrSituation(answer){
+  const system = "Klasifikuj da li je odgovor korisnika prvenstveno EMOCIJA (osećanje, npr. 'ljutit "
+    + "sam', 'osećam tugu', 'preplavljen sam') ili SITUACIJA/tema/cilj (npr. 'imam problem sa mužem', "
+    + "'hoću da rešim odnos s ocem', 'posao me izluđuje'). Odgovori isključivo sa 'EMOCIJA' ili 'SITUACIJA'.";
+  const resp = await ferCallAgent(system, answer);
+  if(!resp) return 'situation';
+  return resp.trim().toUpperCase().startsWith('EMO') ? 'emotion' : 'situation';
+}
+
+async function agentExtractPeople(answer){
+  if(!answer || !answer.trim()) return [];
+  const system = "Iz odgovora korisnika izvuci listu OSOBA koje su pomenute kao dodatno uključene "
+    + "u problem — NE uključuj mamu, tatu ni Boga (oni su već fiksno uključeni, ne treba ih ponavljati). "
+    + "Ako korisnik kaže da nema nikog drugog ('nema drugih', 'niko', 'to je sve'), vrati praznu listu. "
+    + "Odgovori ISKLJUČIVO u JSON formatu, spisak stringova, bez ičega drugog: [\"osoba1\", \"osoba2\"] "
+    + "ili prazna lista [] ako nema nikog.";
+  const resp = await ferCallAgent(system, answer);
+  if(!resp) return [];
+  try{
+    const match = resp.match(/\[[\s\S]*\]/);
+    const parsed = JSON.parse(match ? match[0] : resp);
+    if(Array.isArray(parsed)) return parsed.filter(x => typeof x === 'string' && x.trim().length).map(x => x.trim());
+    return [];
+  }catch(e){
+    return [];
+  }
+}
+
+async function agentExtractEmotionSituation(rawAnswer){
+  const system = "Iz odgovora korisnika izvuci TAČNO dve stvari, bez tumačenja i bez dodavanja: "
+    + "1) glavnu EMOCIJU (jedna do dve reči, npr. 'ljutnju', 'tugu', 'strah' — u akuzativu, kao "
+    + "da ide iza 'osjećam') i 2) SITUACIJU na koju se emocija odnosi (kratka imenička fraza, kao "
+    + "da ide iza 'u vezi', npr. 'mog oca', 'posla', 'razgovora sa sestrom'). Ako emocija nije "
+    + "eksplicitno rečena, izvedi najbliži razuman naziv emocije iz konteksta. Odgovori ISKLJUČIVO "
+    + "u JSON formatu, bez ičega drugog: {\"emotion\":\"...\",\"situation\":\"...\"}";
+  const resp = await ferCallAgent(system, rawAnswer);
+  if(!resp) return { emotion: '', situation: '' };
+  try{
+    const match = resp.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(match ? match[0] : resp);
+    return { emotion: (parsed.emotion || '').trim(), situation: (parsed.situation || '').trim() };
+  }catch(e){
+    return { emotion: '', situation: '' };
+  }
+}
+
+async function agentCheckPattern(currentText, pastTexts, label){
+  if(!pastTexts || !pastTexts.length) return null;
+  const system = "Ti si pažljiv, mirni pomoćnik u ličnom refleksivnom dnevniku. Dobićeš tekst iz "
+    + "TRENUTNE sesije i listu tekstova iz PROŠLIH sesija (isti tip sadržaja). Tvoj zadatak: ako "
+    + "postoji jasna tematska sličnost ili ponavljanje obrasca, opiši to u JEDNOJ do DVIJE kratke, "
+    + "mirne rečenice na srpskom, bez dramatizovanja i bez dijagnoze. Ako nema jasne veze, odgovori "
+    + "isključivo sa rečju 'NEMA'. Ne izmišljaj vezu ako nije stvarno prisutna.";
+  const pastBlock = pastTexts.slice(-8).map(t => `- ${t}`).join('\n');
+  const user = `TRENUTNO (${label}): ${currentText}\n\nPROŠLE SESIJE (${label}):\n${pastBlock}\n\nIma li ponavljanja obrasca?`;
+  const resp = await ferCallAgent(system, user);
+  if(!resp) return null;
+  if(resp.trim().toUpperCase().startsWith('NEMA')) return null;
+  return resp.trim();
+}
+
+// ---------- trajno skladište sesija (window.storage) ----------
+if(!hasStorage){
+  console.log('Napomena: window.storage nije dostupan (vjerovatno je fajl otvoren lokalno, van Claude.ai) — pamćenje sesija i profila je isključeno za ovu upotrebu, sve ostalo radi normalno.');
+}
+
+async function loadPastKeyTexts(keyName){
+  if(!hasStorage) return [];
+  try{
+    const listResult = await window.storage.list('session:', false);
+    const keys = (listResult && listResult.keys) || [];
+    const texts = [];
+    for(const k of keys){
+      try{
+        const result = await window.storage.get(k, false);
+        if(result && result.value){
+          const parsed = JSON.parse(result.value);
+          if(parsed.keyAnswers && parsed.keyAnswers[keyName]){
+            texts.push(parsed.keyAnswers[keyName]);
+          }
+        }
+      }catch(e){ /* skip unreadable key */ }
+    }
+    return texts;
+  }catch(e){
+    console.error('storage list error', e);
+    return [];
+  }
+}
+
+async function ferSaveSessionToStorage(){
+  if(!hasStorage) return;
+  try{
+    const keyAnswers = {};
+    questions.forEach((q, i) => {
+      if(q.key) keyAnswers[q.key] = responses[i].answer;
+    });
+    const timestamp = new Date().toISOString();
+    const payload = { timestamp, keyAnswers, responses };
+    await window.storage.set(`session:${timestamp}`, JSON.stringify(payload), false);
+  }catch(e){
+    console.error('storage save error', e);
+  }
+}
+
+
+async function ferSpeakOpenAI(text){
+  try{
+    const res = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ model: 'tts-1', voice: 'nova', input: text })
+    });
+    if(!res.ok) throw new Error('TTS API greška: ' + res.status);
+    const audioBlob = await res.blob();
+    const url = URL.createObjectURL(audioBlob);
+    return await new Promise((resolve) => {
+      const audio = new Audio(url);
+      currentAudioEl = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); currentAudioEl = null; resolve(true); };
+      audio.onerror = () => { URL.revokeObjectURL(url); currentAudioEl = null; resolve(true); };
+      setStatus('speaking', 'Čita pitanje…');
+      audio.play();
+    });
+  }catch(e){
+    console.error('OpenAI TTS error', e);
+    return false;
+  }
+}
+
+
+
+async function ferSpeak(text, onEndCallback){
+  if(openaiEnabled){
+    const ok = await ferSpeakOpenAI(text);
+    if(ok){ onEndCallback && onEndCallback(); return; }
+    // OpenAI TTS failed — fall through to browser voice as backup
+  }
+  if(!speechSupported){ onEndCallback && onEndCallback(); return; }
+
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(text);
+    if(selectedVoice) utter.voice = selectedVoice;
+    utter.rate = 0.95;
+    utter.pitch = 1.05;
+    utter.onstart = () => {
+      // Chrome/Edge poznato ume da sam od sebe "pauzira" sintezu posle ~15s
+      // i nikad je ne nastavi — ovo je čuvar koji je redovno "budi".
+      clearResumeWatchdog();
+      resumeWatchdog = setInterval(() => { if(synth.speaking) synth.resume(); }, 4000);
+    };
+    utter.onend = () => { clearResumeWatchdog(); onEndCallback && onEndCallback(); };
+    utter.onerror = () => { clearResumeWatchdog(); onEndCallback && onEndCallback(); };
+    setStatus('speaking', 'Čita pitanje…');
+    synth.speak(utter);
+  };
+
+  // Poznata Chrome/Edge greška: ako se ferSpeak() pozove odmah posle cancel()
+  // u istom trenutku, novi izgovor ume tiho da propadne bez ikakve greške —
+  // to objašnjava "pročita samo prvo pitanje, posle tišina". Zato brišemo
+  // samo kad nešto zaista govori/čeka, i damo pregledaču kratak trenutak
+  // da resetuje red pre novog izgovora.
+  if(synth.speaking || synth.pending){
+    synth.cancel();
+    setTimeout(doSpeak, 80);
+  } else {
+    doSpeak();
+  }
+}
+
+function parseSpokenNumber(text){
+  text = (text || '').toLowerCase();
+  if(!text.trim()) return null;
+  const cleanedWords = text.replace(/[.,!?„"“]/g, '').split(/\s+/).filter(Boolean);
+
+  const digitMatch = text.match(/\b(10|[0-9])\b/g);
+  if(digitMatch && digitMatch.length) return Math.max(0, Math.min(10, parseInt(digitMatch[digitMatch.length-1])));
+
+  // "bula" je česta pogrešna transkripcija za "nula" (nula -> bula, fonetski slično)
+  const wordMap = {"nula":0,"bula":0,"jedan":1,"jedna":1,"dva":2,"dve":2,"dvije":2,"tri":3,"četiri":4,"cetiri":4,"pet":5,"šest":6,"sest":6,"sedam":7,"osam":8,"devet":9,"deset":10};
+  for(let i = cleanedWords.length - 1; i >= 0; i--){
+    if(wordMap.hasOwnProperty(cleanedWords[i])) return wordMap[cleanedWords[i]];
+  }
+
+  // "nema naboja", "nema više", "nestalo je" i slično -> tretiraj kao nula. Provera na nivou
+  // pojedinačnih riječi (ne cijele fraze) jer loša transkripcija lako razbije tačan redoslijed riječi.
+  const zeroWords = ['nema', 'nestalo', 'nestao', 'nestala', 'ništa', 'nista'];
+  if(cleanedWords.some(w => zeroWords.includes(w))) return 0;
+  return null;
+}
+
+function ferHandleMicUnavailable(){
+  voiceModeEnabled = false;
+  sessionActive = false;
+  captureMode = null;
+  if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} recognition = null; }
+  voiceStatusBar.classList.add('hidden');
+  voiceControls.classList.add('hidden');
+  if(!document.getElementById('micFallbackNote')){
+    const note = document.createElement('div');
+    note.id = 'micFallbackNote';
+    note.className = 'voice-status-note';
+    note.style.marginBottom = '18px';
+    note.textContent = 'Mikrofon nije dostupan (nema dozvole ili je blokiran u ovom prikazu). Prešli smo na ručni unos — kucaj odgovore i pomjeri klizač rukom, „Zabilježi i nastavi“ i dalje radi.';
+    qPrompt.insertAdjacentElement('afterend', note);
+  }
+}
+
+// Single persistent recognition instance for the whole session — created (and mic
+// permission requested) exactly once, so the browser only asks for microphone
+// access one time, not on every question.
+function ferInitRecognitionOnce(){
+  if(recognition) return recognition;
+  recognition = new RecognitionCtor();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+  recognition.lang = recognitionLang;
+
+  recognition.onresult = (event) => {
+    if(!captureMode || current < 0) return;
+    if(captureMode === 'answer') ferResetSilenceTimer();
+    if(captureMode === 'followup') resetFollowupSilenceTimer();
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const result = event.results[i];
+      const t = result[0].transcript;
+      if(result.isFinal){
+        segmentFinal = (segmentFinal + ' ' + cyrillicToLatin(t.trim())).trim();
+      } else {
+        interim += t;
+      }
+    }
+    if(captureMode === 'answer'){
+      qAnswer.value = (segmentFinal + ' ' + interim).trim();
+      // u OpenAI modu ovo je SAMO uživo prikaz — konačan (tačniji) tekst upisuje Whisper u advance()
+      if(!openaiEnabled) responses[current].answer = qAnswer.value;
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      ferHandleMicUnavailable();
+    } else if(e.error === 'language-not-supported' && recognitionLang !== 'en-US'){
+      recognitionLang = 'en-US';
+      if(recogLangSelect) recogLangSelect.value = 'en-US';
+    }
+    // other errors (e.g. 'no-speech', transient network hiccups) are ignored —
+    // onend below restarts listening automatically.
+  };
+
+  recognition.onend = () => {
+    if(sessionActive && voiceModeEnabled && !micPaused){
+      try{ recognition.start(); }catch(e){ /* already running */ }
+    }
+  };
+
+  return recognition;
+}
+
+// ---------- generičko "izgovori pitanje pa saslušaj kratak odgovor" ----------
+// Koristi se za: prikupljanje imena/roda, Pitanje 1 dvokorakni dijalog (emocija/situacija),
+// i za "je li to sve, mogu li dalje?" proveru — svuda gdje treba kratak, prirodan odgovor
+// koji se ne završava na fiksni tajmer nego kad zaista nastupi tišina nakon govora.
+let pendingFollowupResolve = null;
+let followupConfirmCheck = true; // da li finalizeFollowup treba prvo da pita "je li to sve" (isključi za kratke da/ne odgovore, da ne pita "je li to sve" o odgovoru na "je li to sve")
+let followupSilenceTimer = null;
+const FOLLOWUP_SILENCE_MS = 6000;
+
+function resetFollowupSilenceTimer(){
+  if(followupSilenceTimer){ clearTimeout(followupSilenceTimer); followupSilenceTimer = null; }
+  followupSilenceTimer = setTimeout(() => { finalizeFollowup(); }, FOLLOWUP_SILENCE_MS);
+}
+
+let quickConfirmResolve = null;
+
+function quickConfirm(promptText){
+  return new Promise((resolve) => {
+    stage = 'speaking';
+    captureMode = null;
+    ferSpeak(promptText, () => {
+      segmentFinal = '';
+      captureMode = 'quickconfirm';
+      if(openaiEnabled) ferStartRecordingSegment();
+      setStatus('listening', 'Čekam odgovor…');
+      quickConfirmResolve = resolve;
+      setTimeout(async () => {
+        if(!quickConfirmResolve) return; // već razriješeno na neki drugi način
+        captureMode = null;
+        let replyText = segmentFinal;
+        if(openaiEnabled){
+          const blob = await stopRecordingSegment();
+          if(blob){
+            const t = await ferTranscribeWithWhisper(blob);
+            if(t) replyText = t;
+          }
+        }
+        let intent = classifyAdvanceIntent(replyText);
+        if(intent === null){
+          intent = replyText ? await agentClassifyAdvanceIntent(replyText) : 'advance';
+        }
+        const fn = quickConfirmResolve;
+        quickConfirmResolve = null;
+        fn(intent === 'advance' ? 'advance' : 'stay');
+      }, 3500);
+    });
+  });
+}
+
+async function finalizeFollowup(){
+  if(stage !== 'followup') return;
+  if(followupSilenceTimer){ clearTimeout(followupSilenceTimer); followupSilenceTimer = null; }
+  captureMode = null;
+  let text = segmentFinal;
+  if(openaiEnabled){
+    const blob = await stopRecordingSegment();
+    if(blob){
+      const whisperText = await ferTranscribeWithWhisper(blob);
+      if(whisperText) text = whisperText;
+    }
+  }
+
+  // ako je nešto već rečeno, provjeri kratko da li je to zaista sve (duže pauze u meta-pozicijama
+  // su česte kad korisnik razmišlja — ne treba odmah preskočiti na sledeće pitanje)
+  if(followupConfirmCheck && text && text.trim().length > 0){
+    const intent = await quickConfirm('Je li to sve?');
+    if(intent === 'stay'){
+      stage = 'followup';
+      segmentFinal = text;
+      captureMode = 'followup';
+      if(openaiEnabled) ferStartRecordingSegment();
+      setStatus('listening', 'Slušam…');
+      resetFollowupSilenceTimer();
+      return;
+    }
+  }
+
+  if(pendingFollowupResolve){
+    const resolveFn = pendingFollowupResolve;
+    pendingFollowupResolve = null;
+    resolveFn((text || '').trim());
+  }
+}
+
+function captureSpokenText(promptText, displayTitle, confirmCheck = true){
+  return new Promise((resolve) => {
+    const wrappedResolve = (text) => {
+      const answerDisplay = (text && text.trim()) ? text : '(nije zabilježen odgovor)';
+      qPrompt.textContent = promptText ? `${promptText}\n\nOdgovor: ${answerDisplay}` : answerDisplay;
+      resolve(text);
+    };
+    pendingFollowupResolve = wrappedResolve;
+    followupConfirmCheck = confirmCheck;
+    const startCapturing = () => {
+      stage = 'followup';
+      segmentFinal = '';
+      captureMode = 'followup';
+      if(openaiEnabled) ferStartRecordingSegment();
+      setStatus('listening', 'Slušam…');
+      resetFollowupSilenceTimer();
+    };
+    if(displayTitle) qTitle.textContent = displayTitle;
+    if(promptText) qPrompt.textContent = promptText;
+    if(promptText && voiceModeEnabled){
+      stage = 'speaking';
+      ferSpeak(genderize(promptText), startCapturing);
+    } else {
+      startCapturing();
+    }
+  });
+}
+
+// ---------- ime i rod ----------
+async function agentExtractName(reply){
+  if(!reply) return '';
+  const system = "Izvuci samo ime osobe iz rečenice (npr. iz 'Zovem se Ana' izvuci 'Ana'). "
+    + "Ako ime nije jasno izgovoreno, vrati prazan string. Odgovori isključivo samim imenom, ništa drugo.";
+  const resp = await ferCallAgent(system, reply);
+  return (resp || '').trim();
+}
+
+function classifyGenderReply(reply){
+  const t = (reply || '').toLowerCase();
+  if(t.includes('muš') || t.includes('mus') || t.includes('muško') || t.includes('musko')) return 'm';
+  if(t.includes('žen') || t.includes('zen')) return 'z';
+  return null;
+}
+
+
+
+
+
+async function collectProfile(){
+  // Rod se sada bira obavezno na uvodnom ekranu (blokira start ako nije izabran),
+  // pa ovdje samo sačuvamo taj izbor za buduće sesije. Ništa se ne pita glasom.
+  await saveProfile();
+}
+
+function ferBeginCapture(mode){
+  segmentFinal = mode === 'answer' ? (responses[current].answer || '') : '';
+  const statusMsg = mode === 'answer' ? 'Slušam odgovor…' : 'Slušam…';
+  if(openaiEnabled){
+    captureMode = mode;
+    ferStartRecordingSegment(); // stvarna, tačnija transkripcija ide preko Whisper-a
+    setStatus('listening', statusMsg);
+    ferResetSilenceTimer();
+    return; // pregledačevo prepoznavanje (ako je pokrenuto) i dalje uživo ažurira tekst preko istog captureMode/segmentFinal
+  }
+  captureMode = mode;
+  setStatus('listening', statusMsg);
+  ferResetSilenceTimer();
+}
+
+// ---------- tišina -> "je li to sve?" provera ----------
+
+function ferClearSilenceTimer(){
+  if(silenceTimer){ clearTimeout(silenceTimer); silenceTimer = null; }
+}
+
+function ferResetSilenceTimer(){
+  ferClearSilenceTimer();
+  if(!voiceModeEnabled) return;
+  if(stage === 'answer'){
+    silenceTimer = setTimeout(() => { ferTriggerSilenceCheckIn(); }, SILENCE_CHECK_MS);
+  }
+}
+
+function classifyAdvanceIntent(text){
+  const words = (text || '').toLowerCase().replace(/[.,!?„“"]/g, '').split(/\s+/).filter(Boolean);
+  const stayWords = new Set(['ne','čekaj','cekaj','još','jos','nastavljam','sačekaj','sacekaj','trenutak','nisam','stani']);
+  const advanceWords = new Set(['da','može','moze','hajde','idemo','dalje','sledeće','sledece','naredno','ok','okej','jeste','tačno','tacno','gotovo','završio','zavrsio','završila','zavrsila','može dalje']);
+  for(const w of words){ if(stayWords.has(w)) return 'stay'; }
+  for(const w of words){ if(advanceWords.has(w)) return 'advance'; }
+  return null;
+}
+
+async function agentClassifyAdvanceIntent(text){
+  if(!text) return 'stay';
+  const system = "Klasifikuj da li korisnik želi da PRELAZI na sledeće pitanje (odgovori isključivo "
+    + "sa 'DALJE') ili da NASTAVI da odgovara na trenutno pitanje (odgovori isključivo sa 'NASTAVI').";
+  const resp = await ferCallAgent(system, text);
+  if(!resp) return 'stay';
+  return resp.trim().toUpperCase().startsWith('DALJE') ? 'advance' : 'stay';
+}
+
+async function ferTriggerSilenceCheckIn(){
+  if(stage !== 'answer') return;
+  ferClearSilenceTimer();
+  captureMode = null;
+
+  try{
+    // sačuvaj ono što je do sada rečeno prije nego pitamo "je li to sve"
+    if(openaiEnabled){
+      const blob = await stopRecordingSegment();
+      if(blob){
+        const text = await ferTranscribeWithWhisper(blob);
+        if(text) qAnswer.value = ((responses[current].answer || '') + ' ' + text).trim();
+      }
+    }
+    saveCurrentAnswer();
+
+    let replyText = await captureSpokenText('Je li to sve? Ako da, reci "da, idemo dalje" — ako ne, reci "ne, nastavljam".', null, false);
+
+    let intent = classifyAdvanceIntent(replyText);
+    if(intent === null){
+      setStatus('thinking', 'Agent provjerava odgovor…');
+      intent = await agentClassifyAdvanceIntent(replyText);
+    }
+
+    if(intent === null || (intent === 'stay' && !replyText)){
+      // nismo dobili jasan odgovor (vjerovatno nije dobro transkribovano) — probaj još jednom
+      replyText = await captureSpokenText('Nisam siguran da sam čuo — reci punom rečenicom: "da, idemo dalje" ili "ne, nastavljam".', null, false);
+      intent = classifyAdvanceIntent(replyText);
+      if(intent === null){
+        intent = replyText ? await agentClassifyAdvanceIntent(replyText) : 'advance';
+        // ako je i drugi pokušaj nejasan/prazan, radije nastavljamo dalje nego da beskonačno pitamo
+      }
+    }
+
+    stage = 'answer';
+    if(intent === 'advance'){
+      bypassVagueCheck = true;
+      advance();
+    } else {
+      ferBeginCapture('answer');
+    }
+  }catch(err){
+    console.error('ferTriggerSilenceCheckIn greška', err);
+    stage = 'answer';
+    ferBeginCapture('answer'); // sigurnija opcija: samo nastavi da slušaš, ne gubi tok
+  }
+}
+
+// ---------- flow ----------
+function renderQuestion(){
+  const q = questions[current];
+  const r = responses[current];
+
+  hideAllActionRows();
+  defaultActions.classList.remove('hidden');
+  qAnswer.classList.remove('hidden');
+  if(typeof spaceHint !== 'undefined') spaceHint.textContent = 'bilo koji taster → dalje · ENTER → nazad';
+
+  qEyebrow.textContent = `${q.phase} · Pitanje ${current+1} od ${questions.length}`;
+  qTitle.textContent = q.title;
+  qPrompt.textContent = q.prompt;
+  qAnswer.value = r.answer;
+  const oldNote = document.getElementById('micFallbackNote');
+  if(oldNote) oldNote.remove();
+
+  backBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+  nextBtn.textContent = current === questions.length - 1 ? "Zabilježi i pogledaj pregled" : "Zabilježi i nastavi";
+
+  progressFill.style.width = `${((current+1)/questions.length)*100}%`;
+  progressLabel.textContent = `${current+1} / ${questions.length} — ${q.phase}`;
+
+  if(voiceModeEnabled){
+    voiceStatusBar.classList.remove('hidden');
+    voiceControls.classList.remove('hidden');
+    toggleMicBtn.style.display = openaiEnabled ? 'none' : 'inline-block';
+    toggleMicBtn.textContent = micPaused ? '🎙️ Nastavi mikrofon' : '🎙️ Pauziraj mikrofon';
+  } else {
+    voiceStatusBar.classList.add('hidden');
+    voiceControls.classList.add('hidden');
+  }
+}
+
+async function runMetaPositionLoop(){
+  const q = questions[current];
+  const people = (sessionContext.people && sessionContext.people.length)
+    ? sessionContext.people
+    : [{name:'mama'}, {name:'tata'}, {name:'Bog'}];
+
+  const summaryLines = [];
+  for(const person of people){
+    const metaPrompt = `Sada uđi u tačku gledišta osobe ${person.name}. Zamisli da si sada ${person.name}, i gledaš sebe u ovoj situaciji. Šta zaista misliš i osjećaš prema sebi sada? Na kraju reci i koliko je to jako, od nula do deset.`;
+    const metaAnswer = await captureSpokenText(metaPrompt, `Meta-pozicija — ${person.name}`);
+    const cleanedMeta = await ferAgentCleanupTranscript(metaAnswer);
+    person.meta = cleanedMeta;
+    person.metaCharge = await extractChargeFromText(cleanedMeta);
+
+    const needAnswer = await captureSpokenText(`Koju potrebu ti ${person.name} nije zadovoljio ili zadovoljila?`, `Nezadovoljena potreba — ${person.name}`);
+    person.need = needAnswer ? await ferAgentCleanupTranscript(needAnswer) : '';
+
+    summaryLines.push(
+      `${person.name} (iz njegove/njene tačke gledišta): ${cleanedMeta}` +
+      (person.metaCharge !== null ? ` (${person.metaCharge}/10)` : '') +
+      (person.need ? ` — nezadovoljena potreba: ${person.need}` : '')
+    );
+  }
+  responses[current].answer = summaryLines.join('\n');
+  goNextQuestion();
+}
+
+function beginQuestionFlow(){
+  const q = questions[current];
+  ferClearSilenceTimer();
+  if(q.id === 2 && sessionContext.emotion){
+    const displayPrompt = q.prompt
+      .replace('[emocija]', sessionContext.emotion)
+      .replace('[situacija]', sessionContext.situation || 'ove situacije');
+    qPrompt.textContent = displayPrompt;
+  }
+  if(q.id === 13){
+    // Ne čekamo posebnu potvrdu "idemo" — krećemo direktno na prvu osobu (mamu).
+    if(voiceModeEnabled){
+      stage = 'speaking';
+      ferSpeak(genderize(q.prompt), () => { runMetaPositionLoop(); });
+    } else {
+      runMetaPositionLoop();
+    }
+    return;
+  }
+  if(voiceModeEnabled){
+    captureMode = null; // mute mic while the question is being read aloud
+    stage = 'speaking';
+    let spokenText = genderize(`${q.title}. ${qPrompt.textContent}`);
+    ferSpeak(spokenText, () => {
+      stage = 'answer';
+      ferBeginCapture('answer');
+    });
+  } else {
+    stage = 'answer';
+  }
+}
+
+function saveCurrentAnswer(){
+  if(current < 0) return;
+  responses[current].answer = qAnswer.value.trim();
+}
+
+async function extractChargeFromText(text){
+  if(!text) return null;
+  let val = parseSpokenNumber(text); // uzima POSLEDNJI broj pomenut u tekstu
+  if(val === null){
+    // rezerva: agent pokuša da nađe broj naboja negde u tekstu, čak i ako parseSpokenNumber ne uspe
+    setStatus('thinking', 'Agent traži naboj u odgovoru…');
+    const system = "Iz teksta izvuci samo broj od 0 do 10 koji predstavlja jačinu naboja koju je "
+      + "korisnik izgovorio. Ako korisnik kaže da nema naboja, da je nula, da je nestalo, ili slično "
+      + "— vrati 0. Riječ 'bula' je česta pogrešna transkripcija za 'nula' — ako je vidiš, tretiraj "
+      + "kao 0. Vrati isključivo taj broj, ništa drugo. Ako broj nije pomenut nigdje u tekstu, vrati "
+      + "tačno riječ 'NEMA'.";
+    const resp = await ferCallAgent(system, text);
+    if(resp && resp.trim().toUpperCase() !== 'NEMA'){
+      const parsed = parseInt(resp.trim());
+      if(!isNaN(parsed)) val = Math.max(0, Math.min(10, parsed));
+    }
+  }
+  return val;
+}
+
+async function extractAndConfirmCharge(){
+  const answerText = responses[current].answer || '';
+  const val = await extractChargeFromText(answerText);
+  responses[current].chargeNow = val;
+  if(!responses[current].savedOnce){
+    responses[current].chargeThen = val;
+    responses[current].savedOnce = true;
+  }
+  return val;
+}
+
+// ---------- screen wake lock (ne dozvoli da se ekran ugasi tokom sesije) ----------
+
+
+document.addEventListener('visibilitychange', async () => {
+  if(document.visibilityState === 'visible' && sessionActive && !screenStep.classList.contains('hidden')){
+    await acquireWakeLock();
+  }
+});
+
+function endVoiceSession(){
+  ferClearSilenceTimer();
+  captureMode = null;
+  sessionActive = false;
+  releaseWakeLock();
+  if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} recognition = null; }
+  if(audioActivityInterval){ clearInterval(audioActivityInterval); audioActivityInterval = null; }
+}
+
+function goNextQuestion(){
+  captureMode = null;
+  if(current < questions.length - 1){
+    current++;
+    renderQuestion();
+    window.scrollTo({top:0, behavior:'smooth'});
+    beginQuestionFlow();
+  } else {
+    if(speechSupported) synth.cancel();
+    if(voiceModeEnabled){
+      runVoiceReviewAndClose();
+    } else {
+      endVoiceSession();
+      ferSaveSessionToStorage();
+      ferShowReview();
+    }
+  }
+}
+
+async function runMeditation(){
+  const lines = [
+    "Sada se opusti… oči su i dalje zatvorene… dozvoli sebi da uđeš u prazan prostor koji je bio tu i prije ovog tretmana, i koji će biti tu i poslije njega.",
+    "Ono što si danas prepoznao i pustio, ne treba da zamijeniš nečim novim. Nije potrebno da postaneš neko — dovoljno je da se vratiš onome što jesi kad nema priče, kad nema imena, kad nema uloge.",
+    "Osjeti kako se svaki naboj koji si danas dotakao rastvara — ne u nešto pozitivno, ne u novi lik ili novo uvjerenje o sebi, već u prazan prostor koji je bio ispod svega, prije svega.",
+    "Prošao si kroz pravu transformaciju danas — kao anđeo transformacije, ne zato što postaješ neko drugi, već zato što se vraćaš onome što jesi kad se svi slojevi spuste.",
+    "U tom praznom prostoru nema straha ni želje, nema dobitka ni gubitka, nema čak ni potrebe da budeš bilo šta. Samo mir koji je oduvijek bio tu.",
+    "Osjeti taj prazan prostor i raširi ga ispred sebe, u vječnost i beskonačnost.",
+    "Osjeti taj prazan prostor i raširi ga iza sebe, u vječnost i beskonačnost.",
+    "Osjeti taj prazan prostor i raširi ga lijevo, u vječnost i beskonačnost.",
+    "Osjeti taj prazan prostor i raširi ga desno, u vječnost i beskonačnost.",
+    "Osjeti taj prazan prostor i raširi ga iznad sebe, u vječnost i beskonačnost.",
+    "Osjeti taj prazan prostor i raširi ga ispod sebe, u vječnost i beskonačnost.",
+    "Sada dozvoli da se taj prazan prostor širi na sve strane. Bez granica, bez napora, bez potrebe da postane bilo šta više od onoga što već jeste.",
+    "Duboko udahni kroz nos… i izdahni kroz usta. Još jednom. I još jednom."
+  ];
+  for(const line of lines){
+    await ferSpeakAwait(line);
+    await new Promise((res) => setTimeout(res, 900));
+  }
+}
+
+let reviewStarted = false;
+async function runVoiceReviewAndClose(){
+  if(reviewStarted) return; // sprečava da se pregled/meditacija pokrenu dvaput (npr. zaostali tajmer)
+  reviewStarted = true;
+
+  try{
+    await ferSpeakAwait('Prošli smo kroz sva pitanja. Sada slijedi kratka meditacija, a poslije nje ćemo pogledati koliko je naboja ostalo.');
+    await runMeditation();
+  }catch(err){
+    console.error('meditacija greška', err);
+  }
+
+  try{
+    const emotionText = sessionContext.emotion || '';
+    const situationText = sessionContext.situation || '';
+    const problemLine = situationText
+      ? `Problem koji smo danas rešavali je: ${emotionText}, u vezi ${situationText}.`
+      : (emotionText ? `Problem koji smo danas rešavali je: ${emotionText}.` : '');
+    const introText = genderize('Sada se vraćamo kroz sve što si {rekao|rekla}, i pogledaćemo koliko je naboja ostalo.');
+    await ferSpeakAwait(problemLine ? `${problemLine} ${introText}` : introText);
+  }catch(err){ console.error('review intro greška', err); }
+
+  for(let i = 0; i < questions.length; i++){
+    const q = questions[i];
+    if(!q.inlineCharge && !q.multiItem && !q.customFlow) continue;
+    try{
+      current = i;
+      const r = responses[i];
+      const rawAnswer = (r.answer && r.answer.trim().length) ? r.answer : '';
+      const cleanedAnswer = rawAnswer ? await ferAgentCleanupTranscript(rawAnswer) : '(nije zabilježen odgovor)';
+      r.answer = rawAnswer ? cleanedAnswer : r.answer; // sačuvaj ispravljenu verziju i za konačan pregled
+
+      qEyebrow.textContent = `Pregled naboja · Pitanje ${i+1} od ${questions.length}`;
+      qTitle.textContent = q.title;
+      qPrompt.textContent = cleanedAnswer;
+
+      if(q.multiItem || q.customFlow){
+        // Misli/Emocije/Odluke/Osobe: naboj je već izgovoren uz svaku stavku u samom odgovoru —
+        // kratko pitanje, bez ponavljanja celog odgovora.
+        const replyText = await captureSpokenText(`${q.title}: ${cleanedAnswer}. Da li je nešto od ovoga i dalje jako, ili je oslabilo?`, null, false);
+        r.reviewNote = replyText ? await ferAgentCleanupTranscript(replyText) : '';
+        if(r.reviewNote) setStatus('', 'Zabilježeno.'); // vizuelno, bez govora
+        continue;
+      }
+
+      // inlineCharge pitanja: kratko pročitaj šta si rekao/la, pa pitaj o preostalom naboju — sve u jednoj rečenici
+      const chargeThenText = (r.chargeThen === null || r.chargeThen === undefined)
+        ? 'nije zabilježen'
+        : `${r.chargeThen}`;
+      const combinedPrompt = genderize(
+        `${q.title}: ${cleanedAnswer}. Naboj je tada bio ${chargeThenText} od deset. Koliko je sada?`
+      );
+      const replyText = await captureSpokenText(combinedPrompt, null, false);
+
+      let num = replyText ? parseSpokenNumber(replyText) : null;
+      if(num === null && replyText){
+        setStatus('thinking', 'Agent traži naboj u odgovoru…');
+        const system = "Iz teksta izvuci broj od 0 do 10 koji predstavlja jačinu naboja. Ako korisnik "
+          + "kaže da nema naboja, da je nula, da je nestalo, ili slično — vrati 0. Riječ 'bula' je česta "
+          + "pogrešna transkripcija za 'nula' (nula) — ako je vidiš, tretiraj kao 0. Vrati isključivo taj "
+          + "broj, ništa drugo. Ako broj zaista nije ni na koji način pomenut, vrati tačno riječ 'NEMA'.";
+        const resp = await ferCallAgent(system, replyText);
+        if(resp && resp.trim().toUpperCase() !== 'NEMA'){
+          const parsed = parseInt(resp.trim());
+          if(!isNaN(parsed)) num = Math.max(0, Math.min(10, parsed));
+        }
+      }
+      if(num !== null){
+        r.chargeNow = num;
+        setStatus('', `Zabilježeno: ${num}/10`); // vizuelno, bez govora — brže do sledećeg pitanja
+      } else {
+        await ferSpeakAwait('Nisam čuo jasan broj — ostavljam prethodnu vrijednost, možeš je rukom podesiti u pregledu.');
+      }
+    }catch(err){
+      console.error('runVoiceReviewAndClose greška na pitanju', q.id, err);
+      // nastavi na sledeću stavku pregleda, ne prekidaj cijeli krug
+    }
+  }
+
+  try{
+    await ferSpeakAwait('Sada slijedi još jedna kratka meditacija, da se sve ovo slegne.');
+    await runMeditation();
+  }catch(err){
+    console.error('druga meditacija greška', err);
+  }
+
+  try{
+    const futureReply = await captureSpokenText(
+      'Da li misliš da se ovaj problem može vratiti u budućnosti, mimo tvoje volje?', null, false
+    );
+    sessionContext.futureCheck = futureReply || '';
+    if(/\bne\b|neće|nece|siguran|sigurna/i.test(futureReply || '')){
+      await ferSpeakAwait('Dobro. Slobodno otvori oči kad si spreman ili spremna.');
+    } else {
+      await ferSpeakAwait('U redu — ako se ikad vrati, znaš da se ovom tehnikom uvijek možeš vratiti na to. Slobodno otvori oči.');
+    }
+
+    const rewardReply = await captureSpokenText(
+      'I poslednje pitanje: kako ćeš da se počastiš zbog ovoga što si danas riješio ili riješila?', null, false
+    );
+    sessionContext.reward = rewardReply || '';
+    if(rewardReply) await ferSpeakAwait('Lijepo. Zaslužio si to, odnosno zaslužila.');
+  }catch(err){
+    console.error('zavrsna pitanja greška', err);
+  }
+
+  endVoiceSession();
+  ferSaveSessionToStorage();
+  ferShowReview();
+}
+
+function ferSpeakAwait(text){
+  return new Promise((resolve) => {
+    stage = 'speaking';
+    captureMode = null;
+    ferSpeak(text, () => resolve());
+  });
+}
+
+async function afterAnswerConfirmed(q){
+  if(q.id === 1){
+    const initialAnswer = responses[current].answer;
+    const followupAnswer = await captureSpokenText('Kako se osjećaš povodom toga? Koju emociju osjećaš?', q.title);
+    const combinedAnswer = `${initialAnswer} ${followupAnswer}`.trim();
+
+    setStatus('thinking', 'Agent formuliše problem…');
+    const cleaned = await ferAgentCleanupTranscript(combinedAnswer);
+    responses[current].answer = cleaned;
+
+    const extracted = await agentExtractEmotionSituation(cleaned);
+    sessionContext.emotion = extracted.emotion;
+    sessionContext.situation = extracted.situation;
+
+    const emotionText = sessionContext.emotion || cleaned;
+    const situationText = sessionContext.situation || '';
+    const reflectionText = situationText
+      ? `Problem koji danas rešavamo je: ${emotionText}, u vezi ${situationText}.`
+      : `Problem koji danas rešavamo je: ${emotionText}.`;
+
+    qPrompt.textContent = `${cleaned}\n\n${reflectionText}`;
+    if(voiceModeEnabled){
+      await ferSpeakAwait(reflectionText);
+    }
+  }
+  if(q.id === 1 || q.id === 17){
+    const keyName = q.id === 1 ? 'problem' : 'djetinjstvo';
+    setStatus('thinking', 'Agent poredi sa prošlim sesijama…');
+    const pastTexts = await loadPastKeyTexts(keyName);
+    const pattern = await agentCheckPattern(responses[current].answer, pastTexts, keyName);
+    if(pattern){
+      await ferSpeakAwait('Nešto sam primijetio: ' + pattern);
+    }
+  }
+  if(q.id === 12){
+    setStatus('thinking', 'Agent identifikuje uključene osobe…');
+    const extra = await agentExtractPeople(responses[current].answer);
+    const people = ['mama', 'tata', 'Bog', ...extra].map(name => ({ name }));
+    sessionContext.people = people;
+
+    const summaryLines = [];
+    for(const person of people){
+      const projPrompt = `Šta misliš da ${person.name} misli ili osjeća o tebi sada, u ovoj situaciji — iz tvoje tačke gledišta? Na kraju reci i koliko je to jako, od nula do deset.`;
+      const answer = await captureSpokenText(projPrompt, `Projekcija — ${person.name}`);
+      const cleaned = await ferAgentCleanupTranscript(answer);
+      person.projection = cleaned;
+      person.projectionCharge = await extractChargeFromText(cleaned);
+      summaryLines.push(`${person.name}: ${cleaned}` + (person.projectionCharge !== null ? ` (${person.projectionCharge}/10)` : ''));
+    }
+    responses[current].answer = summaryLines.join('\n');
+    goNextQuestion();
+    return;
+  }
+  if(q.id === 13){
+    // Q13 sada kreće direktno iz beginQuestionFlow (runMetaPositionLoop), ne odavde —
+    // ovo ostaje samo kao sigurnosna mreža ako se ikad stigne ovamo neočekivano.
+    await runMetaPositionLoop();
+    return;
+  }
+  if(q.inlineCharge){
+    const val = await extractAndConfirmCharge();
+    if(val !== null){
+      setStatus('', `Naboj: ${val}/10`); // samo vizuelno — bez govora, da sledeće pitanje krene brže
+    } else if(voiceModeEnabled){
+      await ferSpeakAwait('Nisam čuo broj naboja u odgovoru — možeš ga kasnije rukom podesiti u pregledu.');
+    }
+  }
+  goNextQuestion();
+}
+
+async function advance(){
+  if(current < 0) return;
+  const q = questions[current];
+  ferClearSilenceTimer();
+
+  if(stage === 'followup'){
+    finalizeFollowup();
+    return;
+  }
+
+  if(stage === 'speaking'){
+    if(currentAudioEl){
+      try{ currentAudioEl.pause(); }catch(e){}
+      if(currentAudioEl.onended) currentAudioEl.onended();
+      currentAudioEl = null;
+    }
+    if(speechSupported) synth.cancel(); // triggers utter.onend -> proceeds pipeline
+    return;
+  }
+
+  if(stage === 'answer'){
+    captureMode = null;
+    try{
+      if(openaiEnabled){
+        setStatus('thinking', 'Transkribujem…');
+        const blob = await stopRecordingSegment();
+        if(blob){
+          const text = await ferTranscribeWithWhisper(blob);
+          if(text !== null && text.length){
+            qAnswer.value = ((responses[current].answer || '') + ' ' + text).trim();
+            setStatus('', 'Transkribovano — vidi tekst ispod.');
+            await new Promise((res) => setTimeout(res, 1400)); // daj vremena da se pročita transkript
+          }
+        }
+      }
+      saveCurrentAnswer();
+
+      const skipVague = bypassVagueCheck || q.customFlow;
+      bypassVagueCheck = false;
+
+      // agent: prazan/izbjegavajući odgovor -> podsjetnik (max 2 puta po pitanju)
+      const attempts = nudgeAttempts[current] || 0;
+      if(attempts < 2 && !skipVague){
+        setStatus('thinking', 'Agent provjerava odgovor…');
+        const vague = await ferAgentIsVague(q.title, responses[current].answer);
+        if(vague){
+          nudgeAttempts[current] = attempts + 1;
+          const nudge = genderize(pickNudge(q));
+          ferSpeak(nudge, () => {
+            stage = 'answer';
+            ferBeginCapture('answer');
+          });
+          return;
+        }
+      }
+
+      // agent: "idi dublje" — trenutno samo za gubitak/dobit (pitanje 8)
+      if(q.id === 8 && !skipVague){
+        const deepAttempts = nudgeAttempts['deep8'] || 0;
+        if(deepAttempts < 2){
+          setStatus('thinking', 'Agent procjenjuje odgovor…');
+          const needsDeeper = await agentGoDeeper(q.title, responses[current].answer);
+          if(needsDeeper){
+            nudgeAttempts['deep8'] = deepAttempts + 1;
+            ferSpeak(genderize('Dobro. A šta ti to još daje — šta bi {izgubio|izgubila} kad ovog problema više ne bi bilo?'), () => {
+              stage = 'answer';
+              ferBeginCapture('answer');
+            });
+            return;
+          }
+        }
+      }
+
+      await afterAnswerConfirmed(q);
+    }catch(err){
+      console.error('advance() greška na pitanju', q.id, err);
+      setStatus('', 'Greška — nastavljam na sledeće pitanje (vidi Console za detalje).');
+      goNextQuestion();
+    }
+    return;
+  }
+}
+
+async function startFerSession(){
+  // Rod, glas, OpenAI podešavanja i wake lock već su postavljeni na hub ekranu
+  // pre poziva ove funkcije — ovde samo pokrećemo FER-specifičan tok.
+  nudgeAttempts = {};
+  sessionContext = { emotion: '', situation: '', people: [] };
+  current = 0;
+  screenHub.classList.add('hidden');
+  screenStep.classList.remove('hidden');
+  renderQuestion();
+
+  if(voiceModeEnabled){
+    sessionActive = true;
+    micPaused = false;
+    if(openaiEnabled){
+      try{
+        await initMediaStreamOnce();
+        // NAPOMENA: namjerno NE pokrećemo uporedo i pregledačevo prepoznavanje ovdje —
+        // korištenje dva odvojena mikrofonska API-ja istovremeno je vjerovatan uzrok
+        // ponovljenih "dozvoli mikrofon" prozora. Whisper i dalje radi tačnu transkripciju,
+        // samo bez uživo teksta dok govoriš (tekst se pojavi kad završiš i pritisneš Space).
+      }catch(e){
+        console.error('mic init error', e);
+        openaiEnabled = false;
+        if(recognitionSupported){
+          const rec = ferInitRecognitionOnce();
+          captureMode = null;
+          try{ rec.start(); }catch(err){}
+        } else {
+          ferHandleMicUnavailable();
+        }
+      }
+    } else if(recognitionSupported){
+      const rec = ferInitRecognitionOnce();
+      captureMode = null;
+      try{ rec.start(); }catch(e){ /* may already be starting */ }
+    } else {
+      voiceModeEnabled = false;
+    }
+  }
+  await collectProfile();
+  beginQuestionFlow();
+}
+
+function ferGoBack(){
+  if(current === 0) return;
+  saveCurrentAnswer();
+  captureMode = null;
+  if(speechSupported) synth.cancel();
+  current--;
+  renderQuestion();
+  window.scrollTo({top:0, behavior:'smooth'});
+  beginQuestionFlow();
+}
+
+function ferRepeatCurrent(){
+  if(!voiceModeEnabled) return;
+  const q = questions[current];
+  captureMode = null;
+  let text = genderize(`${q.title}. ${q.prompt}`);
+  if(q.id === 2 && sessionContext.emotion){
+    text = text.replace('[emocija]', sessionContext.emotion).replace('[situacija]', sessionContext.situation || 'ove situacije');
+  }
+  stage = 'speaking';
+  ferSpeak(text, () => {
+    stage = 'answer';
+    ferBeginCapture('answer');
+  });
+}
+
+function ferShowReview(){
+  screenStep.classList.add('hidden');
+  screenReviewFer.classList.remove('hidden');
+  document.getElementById('reviewTitleFer').textContent = genderize('Ono što si {prošao|prošla}');
+  document.getElementById('reviewIntroNoteFer').textContent = genderize('Ovdje su, redom, sva pitanja i tvoji odgovori. Za svako pročitaj šta si {napisao|napisala} i podesi klizač na trenutnu jačinu naboja — vidjećeš razliku između "tada" i "sada".');
+  const list = document.getElementById('reviewListFer');
+  list.innerHTML = '';
+
+  questions.forEach((q, i) => {
+    const r = responses[i];
+    const item = document.createElement('div');
+    item.className = 'review-item';
+
+    const qEl = document.createElement('div');
+    qEl.className = 'review-q';
+    qEl.textContent = `${i+1}. ${q.title}`;
+    item.appendChild(qEl);
+
+    const aEl = document.createElement('div');
+    aEl.className = 'review-answer' + (r.answer ? '' : ' empty');
+    aEl.textContent = r.answer || '(nema zabilježenog odgovora)';
+    item.appendChild(aEl);
+
+    if(q.multiItem && r.reviewNote){
+      const noteEl = document.createElement('div');
+      noteEl.className = 'naboj-then';
+      noteEl.style.display = 'inline-block';
+      noteEl.style.marginBottom = '8px';
+      noteEl.textContent = `Naknadno: ${r.reviewNote}`;
+      item.appendChild(noteEl);
+    }
+
+    if(q.inlineCharge){
+      const row = document.createElement('div');
+      row.className = 'naboj-row';
+
+      const then = document.createElement('span');
+      then.className = 'naboj-then';
+      then.textContent = `Naboj tada: ${r.chargeThen ?? 0}`;
+      row.appendChild(then);
+
+      const nowLabel = document.createElement('span');
+      nowLabel.className = 'naboj-now-label';
+      nowLabel.textContent = 'Naboj sada:';
+      row.appendChild(nowLabel);
+
+      const orbHolder = document.createElement('div');
+      orbHolder.style.width='28px'; orbHolder.style.height='28px';
+      orbHolder.style.display='flex'; orbHolder.style.alignItems='center'; orbHolder.style.justifyContent='center';
+      const smallOrb = document.createElement('div');
+      smallOrb.className = 'orb';
+      const initSize = orbSize(r.chargeNow ?? 0);
+      smallOrb.style.width = initSize+'px';
+      smallOrb.style.height = initSize+'px';
+      orbHolder.appendChild(smallOrb);
+      row.appendChild(orbHolder);
+
+      const range = document.createElement('input');
+      range.type = 'range'; range.min = 0; range.max = 10;
+      range.value = r.chargeNow ?? 0;
+      range.style.flex = '1'; range.style.minWidth='100px';
+      range.addEventListener('input', () => {
+        r.chargeNow = parseInt(range.value);
+        const s = orbSize(r.chargeNow);
+        smallOrb.style.width = s+'px';
+        smallOrb.style.height = s+'px';
+        valLabel.textContent = range.value;
+      });
+      row.appendChild(range);
+
+      const valLabel = document.createElement('span');
+      valLabel.style.fontFamily = "'Fraunces',serif";
+      valLabel.style.fontSize = '17px';
+      valLabel.style.minWidth = '18px';
+      valLabel.textContent = r.chargeNow ?? 0;
+      row.appendChild(valLabel);
+
+      item.appendChild(row);
+    }
+
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('downloadBtnFer').addEventListener('click', () => {
+  let text = "DNEVNIK OSLOBAĐANJA — transkript sesije\n";
+  text += "=".repeat(44) + "\n\n";
+  questions.forEach((q, i) => {
+    const r = responses[i];
+    text += `${i+1}. ${q.title}\n`;
+    text += `${r.answer || '(nema zabilježenog odgovora)'}\n`;
+    if(q.inlineCharge){
+      text += `Naboj tada: ${r.chargeThen ?? 0}/10   |   Naboj sada: ${r.chargeNow ?? 0}/10\n`;
+    }
+    text += "\n";
+  });
+  const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dnevnik-oslobadjanja.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+function resetFerState(){
+  endVoiceSession();
+  reviewStarted = false;
+  responses = questions.map(q => ({ answer: "", chargeThen: null, chargeNow: null, savedOnce:false }));
+}
+
+
+loadSavedProfile();
+</script>
+</body>
+</html>
